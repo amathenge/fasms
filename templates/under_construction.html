@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}FAWA Statements{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        {{ nav(session['user']) }}
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <p class="text-center">This page {% if page %}{{ page }}{% endif %} is under construction</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

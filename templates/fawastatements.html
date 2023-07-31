@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}FAWA Statements{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    {% if message %}
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <p class="text-center">{{ message }}</p>
+        </div>
+    </div>
+    {% endif %}
+    <div class="row my-2 justify-content-center">
+        <div class="col-6 my-2">
+            <form action="/upload" method="POST">
+                <div class="form-group d-grid my-2 text-center">
+                    <button class="btn btn-primary d-grid" type="submit" name="callform" id="callform">Upload FAWA Statement file</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row my-2 justify-content-center">
+        <div class="col-6 my-2">
+            <form action="/checkstatements" method="POST">
+                <div class="form-group d-grid my-2 text-center">
+                    <button class="btn btn-primary d-grid" type="submit" name="checkstatements" id="checkstatements">Check FAWA Statement data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row my-2 justify-content-center">
+        <div class="col-6 my-2">
+            <form action="/managefiles" method="POST">
+                <div class="form-group d-grid my-2 text-center">
+                    <button class="btn btn-primary d-grid" type="submit" name="managefiles" id="managefiles">Manage Uploaded FAWA Statement files</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import one_time %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}FAWA OTP{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+        {{ one_time(url_for('check_otp')) }}
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <p class="small"><em>2 minutes</em></p>
+        </div>
+    </div>
+{% endblock %}
