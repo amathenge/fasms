@@ -3,7 +3,7 @@
 drop table if exists payroll;
 
 CREATE TABLE payroll (
-    id integer primary key,
+    id integer primary key autoincrement,
     payrollid integer not null,
     paymonth integer not null,
     payyear integer not null,
@@ -35,7 +35,7 @@ CREATE TABLE payroll (
 drop table if exists payrollheader;
 
 CREATE TABLE payrollheader (
-    payid integer primary key,
+    payid integer primary key autoincrement,
     paydate date not null,
     payyear integer not null,
     paymonth integer not null,

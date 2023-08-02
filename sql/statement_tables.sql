@@ -1,7 +1,7 @@
 drop table if exists fawaheader;
 
 create table fawaheader (
-    id integer primary key,
+    id integer primary key autoincrement,
     statementday integer not null,
     statementyear integer not null,
     statementmonth integer not null,
@@ -12,7 +12,7 @@ create table fawaheader (
 drop table if exists fawastatement;
 
 create table fawastatement (
-    id integer primary key,
+    id integer primary key autoincrement,
     statementid integer not null REFERENCES fawaheader(id),
     memberno varchar(4) not null,
     membername varchar(128) not null,
