@@ -226,6 +226,7 @@ def importdata(filename):
 
     rows_imported = 0
     sheet_names = wb.sheetnames
+    log(f'Sheets are: {sheet_names}')
     # for each sheet, if the sheet has the format MMYYYY, then this is a FAWA Statement sheet.
     # read the sheet.
     db = get_db()
@@ -244,7 +245,7 @@ def importdata(filename):
         while cur_row < 100:
             member = get_member(cur_row)
             if member is not None:
-                log(f'read member = {member["membername"]}')
+                log(f'read member = {member["membername"]} on sheet = {each_sheet}')
                 # create the insert statement for the member and add them to the database.
                 # table = fawastatement
                 sql = '''

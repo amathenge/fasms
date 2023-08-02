@@ -203,7 +203,7 @@ def upload():
     # not in post mode - show the upload form
     return render_template('upload.html', message=message)
 
-@app.route('/checkstatemetns', methods=['GET', 'POST'])
+@app.route('/checkstatements', methods=['GET', 'POST'])
 def checkstatements():
     if 'user' not in session:
         return redirect(url_for('login'))
