@@ -37,7 +37,10 @@ def allowed_file(filename):
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
-    # if user is already logged in, then handle that here. Redirect to page X
+    # if user is already logged in, then handle that here. Redirect to home page
+    if 'user' in session:
+        return redirect(url_for('home'))
+    
     message = None
     # process POST
     if request.method == 'POST':
@@ -101,6 +104,10 @@ def login():
 # this method will check the OTP sent to the user via email and SMS
 @app.route('/check_otp', methods=['GET', 'POST'])
 def check_otp():
+    # no need to check for OTP if the user is already logged in
+    if 'user' in session:
+        return redirect(url_for('home'))
+    
     # define a default return message
     message = "Invalid Data"
     if request.method == 'POST':
@@ -221,7 +228,7 @@ def checkstatements():
     # show table of all statements in the database.
     db = get_db()
     cur = db.cursor()
-    sql = 'select id, fileid, statementday, statementmonth, statementyear from fawaheader'
+    sql = 'select id, fileid, statementday, statementmonth, statementyear, processed from fawaheader'
     cur.execute(sql)    
     data = cur.fetchall()
     statements = []
@@ -230,6 +237,7 @@ def checkstatements():
             'id': row['id'],
             'fileid': row['fileid'],
             'statementdate': buildDateString(row['statementday'], row['statementmonth'], row['statementyear']),
+            'processed': row['processed']
         })
     return render_template('checkstatements.html', statements=statements)
 

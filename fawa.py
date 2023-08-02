@@ -61,7 +61,7 @@ def get_member(row):
     # check database for this member.
     db = get_db()
     cur = db.cursor()
-    sql = 'select id, memberid, firstname, middlename, surname, phone from member where memberid = ?'
+    sql = 'select id, memberno, firstname, middlename, surname, phone from member where memberno = ?'
     cur.execute(sql, [memberno])
     data = cur.fetchone()
     if data is None:
