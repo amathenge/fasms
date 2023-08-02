@@ -2,6 +2,7 @@ drop table if exists fawaheader;
 
 create table fawaheader (
     id integer primary key autoincrement,
+    fileid integer not null references uploads(id),
     statementday integer not null,
     statementyear integer not null,
     statementmonth integer not null,

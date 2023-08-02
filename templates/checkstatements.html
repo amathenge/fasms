@@ -10,16 +10,18 @@
 {% set user = session['user'] %}
 
 <div class="container">
-    <div class="row">
-        <div class="col-12 justify-content-center">
+    <div class="row justify-content-center">
+        <div class="col-6">
             <table class="table table-striped">
                 <tr>
                     <th scope="col">ID</th>
-                    <th scope="col">Date</th>
+                    <th scope="col">File ID</th>
+                    <th scope="col">Statement Date</th>
                 </tr>
                 {% for row in statements %}
                 <tr>
                     <td><a href="#">{{ row.id }}</a></td>
+                    <td>{{ row.fileid }}</td>
                     <td>{{ row.statementdate }}</td>
                 </tr>
                 {% endfor %}

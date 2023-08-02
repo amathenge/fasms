@@ -5,7 +5,8 @@ from sendEmail import send_otp_email
 from sms import sendSMS
 import os
 from werkzeug.utils import secure_filename
-from fawa import importdata
+from fawa import importdata, buildDateString
+import cred
 
 app = Flask(__name__)
 # required when you use sessions.
@@ -72,6 +73,11 @@ def login():
                 'locked': data['locked']
             }
             session['user'] = user
+
+            # DEBUG CODE - REMOVE THE LINE BELOW TO GET OTP AUTH
+            return redirect(url_for('home'))
+            # END OF DEBUG
+            
             # on successful password, send a PIN to the phone number.
             otp = onetime()
             # invalidate existing tokens
@@ -192,14 +198,18 @@ def upload():
                 sql = 'insert into uploads (filename) values (?)'
                 cur.execute(sql, [filename])
                 db.commit()
+                fileid = cur.lastrowid
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 message = "File uploaded"
                 # import data from the file (xlsx) into the database.
-                result = importdata(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                result = importdata(fileid, os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 if result is None:
                     message += ' - DATA NOT IMPORTED'
                 else:
                     message += f' DATA IMPORTED {result} rows'
+            else:
+                # file has already been uploaded.
+                message = f"File <b><u>{data['filename']}</u></b> exists - uploaded previously."
     # not in post mode - show the upload form
     return render_template('upload.html', message=message)
 
@@ -207,9 +217,21 @@ def upload():
 def checkstatements():
     if 'user' not in session:
         return redirect(url_for('login'))
-    
-    # user is logged in, now just send a stub page.
-    return render_template('under_construction.html', page='Check Statements')
+
+    # show table of all statements in the database.
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select id, fileid, statementday, statementmonth, statementyear from fawaheader'
+    cur.execute(sql)    
+    data = cur.fetchall()
+    statements = []
+    for row in data:
+        statements.append({
+            'id': row['id'],
+            'fileid': row['fileid'],
+            'statementdate': buildDateString(row['statementday'], row['statementmonth'], row['statementyear']),
+        })
+    return render_template('checkstatements.html', statements=statements)
 
 @app.route('/managefiles', methods=['GET', 'POST'])
 def managefiles():

@@ -50,9 +50,7 @@ def nullify(item):
 def get_member(row):
     global sheet
     member = None
-    log('in get_member()')
     data = sheet.cell(row,1).value
-    log(f'raw data = {data}')
     try:
         memberno = int(data)
         log(f'row={row} and memberno={memberno}')
@@ -116,17 +114,16 @@ def month_number(month):
     
 # the fawaheader table contains a header for the statement for a particular date.
 # in this case, month/year combination.
-def get_header(sheet_name):
+def get_header(fileid, sheet_name):
     # assume that the sheetname is OK. DDMMMYYYY
     # return the id of the header record in the table fawaheader.
     day = int(sheet_name[:2])
     month = month_number(sheet_name[2:5])
     year = int(sheet_name[5:])
-    log(f'in get_header() day={day}, month={month}, year={year}')
     db = get_db()
     cur = db.cursor()
     sql = '''
-        select id, statementday, statementmonth, statementyear from fawaheader where 
+        select id, fileid, statementday, statementmonth, statementyear from fawaheader where 
         statementday = ? and statementmonth = ? and statementyear = ?
     '''
     cur.execute(sql, [day, month, year])
@@ -135,14 +132,12 @@ def get_header(sheet_name):
         return None
     
     sql = '''
-        insert into fawaheader (statementday, statementmonth, statementyear)
-        values (?, ?, ?)
+        insert into fawaheader (fileid, statementday, statementmonth, statementyear)
+        values (?, ?, ?, ?)
     '''
-    cur.execute(sql, [day, month, year])
+    cur.execute(sql, [fileid, day, month, year])
     db.commit()
-    log('in get_header() - commited new header')
     header = cur.lastrowid
-    log(f'cur.lastrowid in get_header() = {header}')
     return header
 
 # given a member object, build a query string, inserting NULL where appropriate.
@@ -212,11 +207,10 @@ def buildQuery(header, data):
 # returns:
 #   None = failed to import
 #   Integer = number of rows imported.
-def importdata(filename):
+def importdata(fileid, filename):
     # we are modifying the global sheet and workbook variables.
     global sheet, wb
 
-    log('Attempting import')
     try:
         wb = load_workbook(filename, data_only=True)
         log(f'workbook opened = {filename}')
@@ -235,17 +229,14 @@ def importdata(filename):
         if not isfawasheet(each_sheet):
             continue
         
-        log(f'read sheet = {each_sheet}')
         sheet = wb[each_sheet]
-        header = get_header(each_sheet)
-        log(f'got fawaheader = {header}')
+        header = get_header(fileid, each_sheet)
         # start at row=1 and go to about 100.
         # if col=1 has an integer, then this is a member
         cur_row = 1
         while cur_row < 100:
             member = get_member(cur_row)
             if member is not None:
-                log(f'read member = {member["membername"]} on sheet = {each_sheet}')
                 # create the insert statement for the member and add them to the database.
                 # table = fawastatement
                 sql = '''
@@ -262,6 +253,41 @@ def importdata(filename):
                 db.commit()
                 rows_imported += 1
             cur_row += 1
-        log(f'read total rows = {cur_row}')
         log(f'imported rows = {rows_imported}')
     return rows_imported
+
+# return a date string given day, month and year
+# e.g., buildDateString(d, m, y) --> "2 January 2023"
+def buildDateString(d, m, y):
+    s = str(d)
+    match m:
+        case 1:
+            s += ' January '
+        case 2:
+            s += ' February '
+        case 3:
+            s += ' March '
+        case 4:
+            s += ' April '
+        case 5:
+            s += ' May '
+        case 6:
+            s += ' June '
+        case 7:
+            s += ' July '
+        case 8:
+            s += ' August '
+        case 9:
+            s += ' September '
+        case 10:
+            s += ' October '
+        case 11:
+            s += 'November'
+        case 12:
+            s += 'December'
+        case _:
+            s += ' UNKNOWN '
+
+    s += str(y)
+
+    return s
