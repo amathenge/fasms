@@ -168,7 +168,7 @@ def sendallsms(sid):
         return render_template('smsresult.html', sid=data['id'], message='Already Processed')
     
     # update fawaheader->processed = true
-    sql = 'update fawaheader set processed = true where id = ?'
+    sql = 'update fawaheader set processed = 1 where id = ?'
     cur.execute(sql, [sid])
     db.commit()
 
