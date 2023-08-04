@@ -19,7 +19,7 @@ CREATE TABLE users (
     password varchar(32) not null,
     phone varchar(32) not null,
     auth varchar(8) not null default '6',
-    locked boolean not null default false
+    locked boolean not null default 0
 );
 
 drop table if exists otp;
@@ -29,7 +29,7 @@ create table otp (
     userid integer not null references users (id),
     otp varchar(6) not null,
     otp_time datetime not null,
-    valid boolean not null default false
+    valid boolean not null default 0
 );
 
 -- add some sample data
