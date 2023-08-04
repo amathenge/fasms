@@ -211,6 +211,8 @@ def sendallsms(sid):
         db.commit()
         lastinsertid = cur.lastrowid
         # now send the SMS.
+        # smsrecipient = row['phone']
+        # smsresult = sendSMS(sms, [smsrecipient])
         smsresult = sendSMS(sms, ['254759614127'])
         sql = 'update smslog set smsresult = ? where id = ?'
         cur.execute(sql, [smsresult, lastinsertid])
