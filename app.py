@@ -84,7 +84,7 @@ def login():
             # on successful password, send a PIN to the phone number.
             otp = onetime()
             # invalidate existing tokens
-            sql = 'update otp set valid = false where userid = ?'
+            sql = 'update otp set valid = 0 where userid = ?'
             cur.execute(sql, [user['id']])
             db.commit()
             # get current date/time for authentication
