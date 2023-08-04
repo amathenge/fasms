@@ -1,4 +1,4 @@
-# recreate the pay.db tables
+-- recreate the pay.db tables
 
 drop table if exists payroll;
 
