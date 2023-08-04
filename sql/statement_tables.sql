@@ -6,7 +6,7 @@ create table fawaheader (
     statementday integer not null,
     statementyear integer not null,
     statementmonth integer not null,
-    processed boolean default false,
+    processed boolean default 0,
     unique (statementday, statementyear, statementmonth)
 );
 
