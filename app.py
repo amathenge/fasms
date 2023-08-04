@@ -151,14 +151,67 @@ def fawastatements():
     
     return render_template('fawastatements.html')
 
-@app.route('/sendsms', methods=['GET','POST'])
-def sendsms():
+# send all SMS based on fawaheader->id and mark fawaheader->processed as true.
+@app.route('/sendallsms/<sid>', methods=['GET','POST'])
+def sendallsms(sid):
     # check if logged in, then continue.
     if 'user' not in session:
         return redirect(url_for('login'))
     
-    # user is logged in, now just send a stub page.
-    return render_template('under_construction.html', page='Send SMS')
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select id, statementday, statementmonth, statementyear, processed from fawaheader where id = ?'
+    cur.execute(sql, [sid])
+    data = cur.fetchone()
+    if data['processed'] != 0:
+        return render_template('smsresult.html', message='Already Processed')
+    
+    # update fawaheader->processed = true
+    sql = 'update fawaheader set processed = true where id = ?'
+    cur.execute(sql, [sid])
+    db.commit()
+
+    # send the statements for fawaheader->id == sid
+    statementid = data['id']
+    statementdate = buildDateString(data['statementday'], data['statementmonth'], data['statementyear'])
+    sql = '''
+        select id, statementid, memberno, membername, totaldeposit, monthlydeposit, totalloan_principal, totalloanpaid,
+        outstandingloan, loanrepayment, guaranteed, phone
+        from fawastatement
+        where statementid = ?
+    '''
+    cur.execute(sql, [sid])
+    data = cur.fetchall()
+    smsdate = datetime.now()
+    smscount = 0
+    for row in data:
+        sms = 'FAWA Statement\n'
+        sms += f'Statement Date: {statementdate}\n'
+        sms += f"Full Name: {row['membername']}\n"
+        sms += f"Total Deposit: {row['totaldeposit']}\n"
+        sms += f"Monthly Deposit: {row['monthlydeposit']}\n"
+        if row['totalloan_principal'] is not None:
+            if float(row['totalloan_principal']) > 0:
+                sms += f"Outstanding Loan: {row['totalloan_principal']}\n"
+            if row['outstandingloan'] is not None:
+                if float(row['outstandingloan']) > 0:
+                    sms += f"Oustanding Loan: {row['outstandingloan']}\n"
+            if row['loanrepayment'] is not None:
+                if float(row['loanrepayment']) > 0:
+                    sms += f"Monthly Repayment: {row['loanrepayment']}\n"
+        if row['guaranteed'] is not None:
+            if float(row['guaranteed']) > 0:
+                sms += f"Amount Guaranted to others: {row['guaranteed']}\n"
+        sms += f"Phone: {row['phone']}\n"
+        sms += "Thank you for saving with FAWA"
+
+        sql = 'insert into smslog (smsdate, statementid, memberno, sms) values (?, ?, ?, ?)'
+        cur.execute(sql, [smsdate, sid, row['memberno'], sms])
+        db.commit()
+        smscount += 1
+
+    return render_template('smsresult.html', message=f"{smscount} messages sent")
+
 
 @app.route('/payroll', methods=['GET', 'POST'])
 def payroll():
@@ -249,3 +302,59 @@ def managefiles():
 
     # user is logged in, now just send a stub page.
     return render_template('under_construction.html', page='Manage Files')
+
+# send a single SMS statement.
+@app.route('/sendonesms/<uid>', methods=['GET', 'POST'])
+def sendonesms(uid):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    return render_template('under_construction.html', page="Send SMS")
+
+# generic form for sending an SMS
+@app.route('/sendgenericsms', methods=['GET', 'POST'])
+def sendgenericsms():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    # use member table for recipients.
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select id, memberno, firstname, surname, phone from member
+    '''
+    cur.execute(sql)
+    data = cur.fetchall()
+
+    return render_template('genericsms_form.html', members=data)
+
+@app.route('/reviewstatements/<sid>', methods=['GET', 'POST'])
+def reviewstatements(sid):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select id, statementday, statementmonth, statementyear, processed from fawaheader where id = ?'
+    cur.execute(sql, [sid])
+    data = cur.fetchone()
+    if data is None:
+        return redirect(request.referrer)
+    
+    statementdate = buildDateString(data['statementday'], data['statementmonth'], data['statementyear'])
+    header = {
+        'id': data['id'],
+        'statementdate': statementdate,
+        'processed': data['processed']
+    }
+    sql = '''
+        select id, statementid, memberno, membername, totaldeposit, monthlydeposit, totalloan_principal,
+        totalloanpaid, outstandingloan, loanrepayment, guaranteed, loanroom_noguarantee, loanroom_guarantee,
+        phone from fawastatement where statementid = ?
+    '''
+    cur.execute(sql, [sid])
+    data = cur.fetchall()
+    if data is None:
+        return redirect(request.referrer)
+    
+    return render_template('reviewstatements.html', header=header, statements=data)

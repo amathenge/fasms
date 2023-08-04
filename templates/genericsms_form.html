@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/sms.js') }}"></script>
+{% endblock %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}SEND an SMS{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    <form action="{{ url_for('sendgenericsms') }}" method="POST" onsubmit="return getrecipients()">
+    <div class="row justify-content-center">
+        <div class="col-4">
+            <div class="form-group">
+                <label class="input-group-text" for="memberlist">Select Recipient</label>
+                <select class="form-control" size="6" ondblclick="fromlist(this)" id="memberlist" name="memberlist">
+                {% for member in members %}
+                <option value="{{ member.id }}">{{ member.firstname }} {{ member.surname }}</option>
+                {% endfor %}
+                </select>
+            </div>
+            <div class="form-group my-2">
+                <div class="d-grid gap-2">
+                    <button type="button" id="addrecipient" name="addrecipient" class="btn btn-outline-primary btn-sm" onclick="torecipient()">Add Recipient</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="form-group">
+                <label class="input-group-text" for="recipientlist">Recipient List</label>
+                <select class="form-control" size="6" ondblclick="tolist(this)" id="recipientlist" name="recipientlist" multiple>
+                </select>
+            </div>
+            <div class="form-group my-2">
+                <div class="d-grid gap-2">
+                    <button type="button" id="delrecipient" class="btn btn-outline-primary btn-sm" onclick="deleterecipient()">Remove Recipient</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row my-3 border-top justify-content-center">
+        <div class="col-8">
+            <div class="mb-3">
+                <label for="genericsms" class="form-label">SMS Text</label>
+                <textarea class="form-control" id="genericsms" name="genericsms" rows="4"></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-12 d-flex justify-content-end">
+            <button class="btn btn-primary d-grid" type="submit">Send Message</button>
+        </div>    
+    </div>
+    </form>
+</div>
+
+{% endblock %}

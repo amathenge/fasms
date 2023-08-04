@@ -10,7 +10,7 @@
     <a class="nav-item nav-link text-primary" href="{{ url_for('fawastatements') }}">FAWA Statements</a>
     {% endif %}
     {% if user.auth|isadmin or user.auth|issms or user.auth|isfawa %}
-    <a class="nav-item nav-link text-primary" href="{{ url_for('sendsms') }}">Send SMS</a>
+    <a class="nav-item nav-link text-primary" href="{{ url_for('sendgenericsms') }}">Send SMS</a>
     {% endif %}
     </div>
 </div>

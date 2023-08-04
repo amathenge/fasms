@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block scripts %}
+<script src="https://kit.fontawesome.com/f74df82d77.js" crossorigin="anonymous"></script>
+{% endblock %}
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}Review FAWA Statements{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    <div class="row justify-content-center my-2 py-2 border-top border-bottom border-primary">
+        <div class="col-6">
+            <span class="fs-6">Statement Date {{ header.statementdate }}</span>
+            {% if header.processed == 0 %}
+            <span>&nbsp;<small>[Not Processed]</small></span>
+            {% else %}
+            <span>&nbsp;<small>[Processed]</small></span>
+            {% endif %}
+        </div>
+        <div class="col-6 d-flex justify-content-end">
+            <form action="{{ url_for('sendallsms', sid=header.id) }}" method="POST">
+                <button class="btn btn-primary d-grid" type="submit">Send All SMS</button>
+            </form>
+        </div>        
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <table class="table table-striped table-hover table-sm table-bordered small">
+                <thead>
+                    <tr class="small">
+                        <th scope="col">Member ID</th>
+                        <th scope="col">Full Name</th>
+                        <th scope="col">Total Deposits</th>
+                        <th scope="col">Monthly Deposit</th>
+                        <th scope="col">Total Loan Borrowed</th>
+                        <th scope="col">Total Loan Repaid (with Interest)</th>
+                        <th scope="col">Outsanding Loan Amount with Interest</th>
+                        <th scope="col">Monthly Repayment</th>
+                        <th scope="col">Guaranteed to others</th>
+                        <th scope="col">Available Loan Room (without Guarantee>)</th>
+                        <th scope="col">Avaliable Loan Room (with Guarantee)</th>
+                        <th scope="col">Phone</th>
+                        <th scope="col">&nbsp;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in statements %}
+                    <tr class="small">
+                        <td scope="row">{{ row.memberno }}</td>
+                        <td>{{ row.membername}}</td>
+                        <td>{{ row.totaldeposit }}</td>
+                        <td>{{ row.monthlydeposit }}</td>
+                        {% if row.totalloan_principal %}
+                        <td>{{ row.totalloan_principal }}</td>
+                        {% else %}
+                        <td>&nbsp;</td>
+                        {% endif %}
+                        {% if row.totalloanpaid %}
+                        <td>{{ row.totalloanpaid }}</td>
+                        {% else %}
+                        <td>&nbsp;</td>
+                        {% endif %}
+                        {% if row.outstandingloan %}
+                        <td>{{ row.outstandingloan }}</td>
+                        {% else %}
+                        <td>&nbsp;</td>
+                        {% endif %}
+                        {% if row.loanrepayment %}
+                        <td>{{ row.loanrepayment }}</td>
+                        {% else %}
+                        <td>&nbsp;</td>
+                        {% endif %}
+                        {% if row.guaranteed %}
+                        <td>{{ row.guaranteed }}</td>
+                        {% else %}
+                        <td>&nbsp;</td>
+                        {% endif %}
+                        {% if row.loanroom_noguarantee %}
+                        <td>{{ row.loanroom_noguarantee }}</td>
+                        {% else %}
+                        <td>&nbsp;</td>
+                        {% endif %}
+                        {% if row.loanroom_guarantee %}
+                        <td>{{ row.loanroom_guarantee }}</td>
+                        {% else %}
+                        <td>&nbsp;</td>
+                        {% endif %}
+                        <td>{{ row.phone }}</td>
+                        <td><a href="{{ url_for('sendonesms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
