@@ -78,7 +78,7 @@ def login():
             session['user'] = user
 
             # DEBUG CODE - REMOVE THE LINE BELOW TO GET OTP AUTH
-            return redirect(url_for('home'))
+            # return redirect(url_for('home'))
             # END OF DEBUG
             
             # on successful password, send a PIN to the phone number.
@@ -211,9 +211,9 @@ def sendallsms(sid):
         db.commit()
         lastinsertid = cur.lastrowid
         # now send the SMS.
-        # smsrecipient = row['phone']
-        # smsresult = sendSMS(sms, [smsrecipient])
-        smsresult = sendSMS(sms, ['254759614127'])
+        smsrecipient = row['phone']
+        smsresult = sendSMS(sms, [smsrecipient])
+        # smsresult = sendSMS(sms, ['254759614127'])
         sql = 'update smslog set smsresult = ? where id = ?'
         cur.execute(sql, [smsresult, lastinsertid])
         db.commit()
