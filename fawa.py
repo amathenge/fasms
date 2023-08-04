@@ -53,9 +53,7 @@ def get_member(row):
     data = sheet.cell(row,1).value
     try:
         memberno = int(data)
-        log(f'row={row} and memberno={memberno}')
     except:
-        log(f'row={row} and memberno=None')
         return None
     
     # check database for this member.
@@ -142,54 +140,54 @@ def get_header(fileid, sheet_name):
 
 # given a member object, build a query string, inserting NULL where appropriate.
 def buildQuery(header, data):
-    # statementid, memberno, membername cannot be null
+    # statementid, memberno, msendgenericsmsembername cannot be null
     queryString = '(?, ?, ?'
     queryData = [header, data['memberno'], data['membername']]
     if data['totaldeposit'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['totaldeposit']]
+        queryData += ["{:.2f}".format(float(data['totaldeposit']))]
     if data['monthlydeposit'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['monthlydeposit']]
+        queryData += ["{:.2f}".format(float(data['monthlydeposit']))]
     if data['totalloan_principal'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['totalloan_principal']]
+        queryData += ["{:.2f}".format(float(data['totalloan_principal']))]
     if data['totalloanpaid'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['totalloanpaid']]
+        queryData += ["{:.2f}".format(float(data['totalloanpaid']))]
     if data['outstandingloan'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['outstandingloan']]
+        queryData += ["{:.2f}".format(float(data['outstandingloan']))]
     if data['loanrepayment'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['loanrepayment']]
+        queryData += ["{:.2f}".format(float(data['loanrepayment']))]
     if data['guaranteed'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['guaranteed']]
+        queryData += ["{:.2f}".format(float(data['guaranteed']))]
     if data['loanroom_noguarantee'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['loanroom_noguarantee']]
+        queryData += ["{:.2f}".format(float(data['loanroom_noguarantee']))]
     if data['loanroom_guarantee'] == 'NULL':
         queryString += ', NULL'
     else:
         queryString += ', ?'
-        queryData += [data['loanroom_guarantee']]
+        queryData += ["{:.2f}".format(float(data['loanroom_guarantee']))]
     # phone must be there
     queryString += ', ?)'
     queryData += [data['phone']]

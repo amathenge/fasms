@@ -1,5 +1,5 @@
 from flask import Flask, url_for, render_template, request, session, g, redirect
-from database import get_db, hashpass, onetime, otp_ontime
+from database import get_db, hashpass, onetime, otp_ontime, log
 from datetime import datetime
 from sendEmail import send_otp_email
 from sms import sendSMS
@@ -164,7 +164,8 @@ def sendallsms(sid):
     cur.execute(sql, [sid])
     data = cur.fetchone()
     if data['processed'] != 0:
-        return render_template('smsresult.html', message='Already Processed')
+        # already processed.
+        return render_template('smsresult.html', sid=data['id'], message='Already Processed')
     
     # update fawaheader->processed = true
     sql = 'update fawaheader set processed = true where id = ?'
@@ -188,29 +189,35 @@ def sendallsms(sid):
         sms = 'FAWA Statement\n'
         sms += f'Statement Date: {statementdate}\n'
         sms += f"Full Name: {row['membername']}\n"
-        sms += f"Total Deposit: {row['totaldeposit']}\n"
-        sms += f"Monthly Deposit: {row['monthlydeposit']}\n"
+        sms += "Total Deposit: {:,.2f}\n".format(float(row['totaldeposit']))
+        sms += "Monthly Deposit: {:,.2f}\n".format(float(row['monthlydeposit']))
         if row['totalloan_principal'] is not None:
             if float(row['totalloan_principal']) > 0:
-                sms += f"Outstanding Loan: {row['totalloan_principal']}\n"
+                sms += "Total Loan: {:,.2f}\n".format(float(row['totalloan_principal']))
             if row['outstandingloan'] is not None:
                 if float(row['outstandingloan']) > 0:
-                    sms += f"Oustanding Loan: {row['outstandingloan']}\n"
+                    sms += "Outstanding Loan: {:,.2f}\n".format(float(row['outstandingloan']))
             if row['loanrepayment'] is not None:
                 if float(row['loanrepayment']) > 0:
-                    sms += f"Monthly Repayment: {row['loanrepayment']}\n"
+                    sms += "Monthly Repayment: {:,.2f}\n".format(float(row['loanrepayment']))
         if row['guaranteed'] is not None:
             if float(row['guaranteed']) > 0:
-                sms += f"Amount Guaranted to others: {row['guaranteed']}\n"
+                sms += "Amount Guaranteed to others: {:,.2f}\n".format(float(row['guaranteed']))
         sms += f"Phone: {row['phone']}\n"
         sms += "Thank you for saving with FAWA"
 
-        sql = 'insert into smslog (smsdate, statementid, memberno, sms) values (?, ?, ?, ?)'
-        cur.execute(sql, [smsdate, sid, row['memberno'], sms])
+        sql = 'insert into smslog (smsdate, statementid, memberno, phone, sms) values (?, ?, ?, ?, ?)'
+        cur.execute(sql, [smsdate, sid, row['memberno'], row['phone'], sms])
+        db.commit()
+        lastinsertid = cur.lastrowid
+        # now send the SMS.
+        smsresult = sendSMS(sms, ['254759614127'])
+        sql = 'update smslog set smsresult = ? where id = ?'
+        cur.execute(sql, [smsresult, lastinsertid])
         db.commit()
         smscount += 1
 
-    return render_template('smsresult.html', message=f"{smscount} messages sent")
+    return render_template('smsresult.html', sid=sid, message=f"{smscount} messages sent")
 
 
 @app.route('/payroll', methods=['GET', 'POST'])
@@ -326,7 +333,22 @@ def sendgenericsms():
     cur.execute(sql)
     data = cur.fetchall()
 
-    return render_template('genericsms_form.html', members=data)
+    message = None
+    recipientsdata = None
+    if request.method == "POST":
+        # get list of members to send message to. From the form, a list of ID's
+        recipientslist = request.form.getlist('recipientlist')
+        recipientslist2 = [int(x) for x in recipientslist]
+        # the following line fixed and issue with the tuple when there's only one item (1,)
+        # the SQL command does not like this, so for all I append -1 to the end of the list
+        # there are no members with that ID
+        recipientslist2.append(-1)
+        recipientslist = tuple(recipientslist2)
+        sql = f'select id, memberno, firstname, surname, phone from member where id in {format(recipientslist)}'
+        cur.execute(sql)
+        recipientsdata = cur.fetchall()
+
+    return render_template('genericsms_form.html', members=data, recipients=recipientsdata)
 
 @app.route('/reviewstatements/<sid>', methods=['GET', 'POST'])
 def reviewstatements(sid):
@@ -358,3 +380,36 @@ def reviewstatements(sid):
         return redirect(request.referrer)
     
     return render_template('reviewstatements.html', header=header, statements=data)
+
+# md = message date (date that the SMS was sent)
+@app.route('/showsmslogbyid/<sid>', methods=['GET', 'POST'])
+def showsmslogbyid(sid):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    # md = messagedate
+    # table = smslog
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select statementid from smslog where statementid = ?'
+    cur.execute(sql, [sid])
+    data = cur.fetchone()
+    if data is None:
+        return redirect(request.referrer)
+    
+    sql = 'select statementday, statementmonth, statementyear from fawaheader where id = ?'
+    cur.execute(sql, [data['statementid']])
+    data = cur.fetchone()
+    if data is None:
+        return redirect(request.referrer)
+    
+    statementdate = buildDateString(data['statementday'], data['statementmonth'], data['statementyear'])
+
+    sql = 'select sms, smsresult from smslog where statementid = ?'
+    cur.execute(sql, [sid])
+    data = cur.fetchall()
+    if data is None:
+        return redirect(request.referrer)
+    
+
+    return render_template('smslog.html', log=data, statementdate=statementdate)

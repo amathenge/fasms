@@ -63,6 +63,31 @@
         </div>    
     </div>
     </form>
+    {% if recipients %}
+    <div class="row">
+        <div class="col-12">
+            <p>Message sent to the following recipients</p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <table class="table table-striped">
+                <tr>
+                    <th scope="col">Member No</th>
+                    <th scope="col">Member Name</th>
+                    <th scope="col">Member Phone</th>
+                </tr>
+                {% for recipient in recipients %}
+                <tr>
+                    <td scope="row">{{ recipient.memberno }}</td>
+                    <td>{{ recipient.firstname }} {{ recipient.surname }}</td>
+                    <td>{{ recipient.phone }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 {% endblock %}

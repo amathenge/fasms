@@ -5,5 +5,7 @@ create table smslog (
     smsdate datetime not null,
     statementid integer not null references fawaheader (id),
     memberno integer not null references member (memberno),
-    sms text not null
+    phone varchar(16) not null,
+    sms text not null,
+    smsresult text
 );
