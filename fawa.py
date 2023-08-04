@@ -258,33 +258,32 @@ def importdata(fileid, filename):
 # e.g., buildDateString(d, m, y) --> "2 January 2023"
 def buildDateString(d, m, y):
     s = str(d)
-    match m:
-        case 1:
-            s += ' January '
-        case 2:
-            s += ' February '
-        case 3:
-            s += ' March '
-        case 4:
-            s += ' April '
-        case 5:
-            s += ' May '
-        case 6:
-            s += ' June '
-        case 7:
-            s += ' July '
-        case 8:
-            s += ' August '
-        case 9:
-            s += ' September '
-        case 10:
-            s += ' October '
-        case 11:
-            s += 'November'
-        case 12:
-            s += 'December'
-        case _:
-            s += ' UNKNOWN '
+    if m == 1:
+        s += ' January '
+    elif m == 2:
+        s += ' February '
+    elif m == 3:
+        s += ' March '
+    elif m == 4:
+        s += ' April '
+    elif m == 5:
+        s += ' May '
+    elif m == 6:
+        s += ' June '
+    elif m == 7:
+        s += ' July '
+    elif m == 8:
+        s += ' August '
+    elif m == 9:
+        s += ' September '
+    elif m == 10:
+        s += ' October '
+    elif m == 11:
+        s += 'November'
+    elif m == 12:
+        s += 'December'
+    else:
+        s += ' UNKNOWN '
 
     s += str(y)
 
