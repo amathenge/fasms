@@ -229,6 +229,9 @@ def importdata(fileid, filename):
         
         sheet = wb[each_sheet]
         header = get_header(fileid, each_sheet)
+        # if header is None - this sheet is already loaded.
+        if header is None:
+            continue
         # start at row=1 and go to about 100.
         # if col=1 has an integer, then this is a member
         cur_row = 1
