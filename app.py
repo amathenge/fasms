@@ -38,7 +38,7 @@ def allowed_file(filename):
 @app.route('/', methods=['GET', 'POST'])
 def login():
     # if user is already logged in, then handle that here. Redirect to home page
-    if 'user' in session:
+    if 'user' in session and session['user']['otp']:
         return redirect(url_for('home'))
     
     message = None
@@ -62,6 +62,7 @@ def login():
         elif data['locked']:
             # this user is locked.
             message = 'Account locked.'
+            log(f"Login attempt, locked={data['email']}")
             return render_template('login.html', message=message)
         else:
             # get user information, save to session
@@ -73,14 +74,23 @@ def login():
                 'email': data['email'],
                 'phone': data['phone'],
                 'auth': auth,
-                'locked': data['locked']
+                'locked': data['locked'],
+                'otp': None
             }
             session['user'] = user
-
-            # DEBUG CODE - REMOVE THE LINE BELOW TO GET OTP AUTH
-            # return redirect(url_for('home'))
+            # DEBUG CODE - REMOVE THE LINES BELOW TO GET OTP AUTH
+            #
+            userid = session['user']['id']
+            now = datetime.now()
+            sql = 'update users set lastlogin = ? where id = ?'
+            cur.execute(sql, [now, userid])
+            db.commit()
+            session['modified'] = True
+            session['user']['otp'] = '000000'
+            return redirect(url_for('home'))
+            #
             # END OF DEBUG
-            
+
             # on successful password, send a PIN to the phone number.
             otp = onetime()
             # invalidate existing tokens
@@ -97,7 +107,9 @@ def login():
             message = f"Your OTP to login to the application is {otp}"
             sendSMS(message, user['phone'])
             send_otp_email(message, user['email'])
+            # log(f"OTP sent to {user['phone']} and {user['email']}")
             return render_template('otp.html')
+            # return redirect(url_for('check_otp'))
         
     return render_template('login.html', message=message)
 
@@ -105,7 +117,7 @@ def login():
 @app.route('/check_otp', methods=['GET', 'POST'])
 def check_otp():
     # no need to check for OTP if the user is already logged in
-    if 'user' in session:
+    if 'user' in session and session['user']['otp']:
         return redirect(url_for('home'))
     
     # define a default return message
@@ -122,21 +134,33 @@ def check_otp():
         data = cur.fetchone()
         if data is None:
             # if nothing is returned from the database, wrong OTP. Go back to login page.
+            log(f"OTP fail user={session['user']['email']}")
             message = "Invalid OTP - try again"
         else:
             # OTP was correct for this user, and is valid. Check time returned.
             if otp_ontime(data['otp_time'], now, 2):
-                # response time is OK. Show the home page
+                # response time is OK. Update login time and show the home page
+                db = get_db()
+                cur = db.cursor()
+                sql = 'update users set lastlogin = ? where id = ?'
+                cur.execute(sql, [now, userid])
+                db.commit()
+                log(f"OTP Success user={session['user']['email']}")
+                session['modified'] = True
+                session['user']['otp'] = otp
                 return redirect(url_for('home'))
             else:
+                log(f"OTP timeout user={session['user']['email']}")
                 message = 'Timeout... try again'
+    else:
+        log("OTP Post not processed.")
 
     return render_template('login.html', message=message)
 
 @app.route('/home', methods=['GET', 'POST'])
 def home():
     # check if logged in, then continue.
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
     
     # user is logged in, now just send a stub page.
@@ -146,18 +170,36 @@ def home():
 @app.route('/fawastatements', methods=['GET', 'POST'])
 def fawastatements():
     # check if logged in, then continue.
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
-    
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
     return render_template('fawastatements.html')
 
 # send all SMS based on fawaheader->id and mark fawaheader->processed as true.
 @app.route('/sendallsms/<sid>', methods=['GET','POST'])
 def sendallsms(sid):
     # check if logged in, then continue.
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
-    
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
     db = get_db()
     cur = db.cursor()
     sql = 'select id, statementday, statementmonth, statementyear, processed from fawaheader where id = ?'
@@ -225,7 +267,7 @@ def sendallsms(sid):
 @app.route('/payroll', methods=['GET', 'POST'])
 def payroll():
     # check if logged in, then continue.
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
     
     # user is logged in, now just send a stub page.
@@ -242,9 +284,18 @@ def logout():
 # upload a file
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
-    
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
     if 'callform' in request.form:
         return render_template('upload.html', message=None)
     
@@ -284,8 +335,17 @@ def upload():
 
 @app.route('/checkstatements', methods=['GET', 'POST'])
 def checkstatements():
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
 
     # show table of all statements in the database.
     db = get_db()
@@ -305,9 +365,17 @@ def checkstatements():
 
 @app.route('/managefiles', methods=['GET', 'POST'])
 def managefiles():
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
-    
+
+    user = session['user']
+    # only admin=1 should use this page.
+    auth = (1,)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
 
     # user is logged in, now just send a stub page.
     return render_template('under_construction.html', page='Manage Files')
@@ -315,16 +383,34 @@ def managefiles():
 # send a single SMS statement.
 @app.route('/sendonesms/<uid>', methods=['GET', 'POST'])
 def sendonesms(uid):
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
-    
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
     return render_template('under_construction.html', page="Send SMS")
 
 # generic form for sending an SMS
 @app.route('/sendgenericsms', methods=['GET', 'POST'])
 def sendgenericsms():
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and sms=4 should use this page.
+    auth = (1, 4)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
 
     # use member table for recipients.
     db = get_db()
@@ -337,26 +423,51 @@ def sendgenericsms():
 
     message = None
     recipientsdata = None
+    phonelist = None
+    txt = None
     if request.method == "POST":
         # get list of members to send message to. From the form, a list of ID's
         recipientslist = request.form.getlist('recipientlist')
-        recipientslist2 = [int(x) for x in recipientslist]
-        # the following line fixed and issue with the tuple when there's only one item (1,)
-        # the SQL command does not like this, so for all I append -1 to the end of the list
-        # there are no members with that ID
-        recipientslist2.append(-1)
-        recipientslist = tuple(recipientslist2)
-        sql = f'select id, memberno, firstname, surname, phone from member where id in {format(recipientslist)}'
-        cur.execute(sql)
-        recipientsdata = cur.fetchall()
-
-    return render_template('genericsms_form.html', members=data, recipients=recipientsdata)
+        if len(recipientslist) > 0:
+            recipientslist2 = [int(x) for x in recipientslist]
+            # the following line fixed and issue with the tuple when there's only one item (1,)
+            # the SQL command does not like this, so for all I append -1 to the end of the list
+            # there are no members with that ID
+            recipientslist2.append(-1)
+            recipientslist = tuple(recipientslist2)
+            sql = f'select id, memberno, firstname, surname, phone from member where id in {format(recipientslist)}'
+            cur.execute(sql)
+            recipientsdata = cur.fetchall()
+            if recipientsdata is not None:
+                phonelist = []
+                for item in recipientsdata:
+                    phonelist.append(item['phone'])
+            # get the text to send.
+            txt = request.form['genericsms'].strip()
+            if len(txt) == 0:
+                txt = None
+        # if there are recipients and text is not blank, then send.
+        if phonelist and txt:
+            smsresult = sendSMS(txt, phonelist)
+            # log result into database
+            smsresult = f'text={txt} | ' + smsresult
+            log(smsresult)
+    return render_template('genericsms_form.html', members=data, recipients=recipientsdata, sms=txt)
 
 @app.route('/reviewstatements/<sid>', methods=['GET', 'POST'])
 def reviewstatements(sid):
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
-    
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
     db = get_db()
     cur = db.cursor()
     sql = 'select id, statementday, statementmonth, statementyear, processed from fawaheader where id = ?'
@@ -386,9 +497,18 @@ def reviewstatements(sid):
 # md = message date (date that the SMS was sent)
 @app.route('/showsmslogbyid/<sid>', methods=['GET', 'POST'])
 def showsmslogbyid(sid):
-    if 'user' not in session:
+    if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
-    
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
     # md = messagedate
     # table = smslog
     db = get_db()
@@ -415,3 +535,40 @@ def showsmslogbyid(sid):
     
 
     return render_template('smslog.html', log=data, statementdate=statementdate)
+
+@app.route('/usermgmt', methods=['GET', 'POST'])
+def usermgmt():
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+    
+    # check if authorized to be here.
+    user = session['user']
+    # only admin=1 and usermgr=2 should do user management.
+    auth = (1, 2)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    # collect user data from fawa.db->users and display the form.
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select id, firstname, lastname, email, phone, email, phone, auth, lastlogin
+        from users where locked = 0
+    '''
+    cur.execute(sql)
+    data = cur.fetchall()
+    # data returns 'auth' as a string. need to convert to a tuple() for this form
+    # to display them properly.
+    contacts = []
+    temp = {}
+    for item in data:
+        temp = dict(item)
+        temp['auth'] = tuple([int(x) for x in temp['auth']])
+        contacts.append(temp)
+
+    # log(f"usrmgr = {contacts}")
+    
+    return render_template('usermgmt.html', contacts=contacts)

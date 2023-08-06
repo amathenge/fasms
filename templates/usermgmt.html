@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav, theader, tfooter %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}FAWA Statements{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+{% set auth = session['user']['auth'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <p class="text-center">FAWA User Management</p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            {{ theader(['ID', 'Firstname', 'Lastname', 'Email', 'Phone', 'Auth']) }}
+            <tbody>
+            {% for contact in contacts %}
+                <tr>
+                    <td scope="row">{{ contact.id }}</td>
+                    <td>{{ contact.firstname }}</td>
+                    <td>{{ contact.lastname }}</td>
+                    <td>{{ contact.email }}</td>
+                    <td>{{ contact.phone }}</td>
+                    <td>
+                        {% if contact.auth|isadmin %}Admin &nbsp;{% endif %}
+                        {% if contact.auth|isusrmgr %}User mgr &nbsp;{% endif %}
+                        {% if contact.auth|isfawa %}FAWA mgr &nbsp;{% endif %}
+                        {% if contact.auth|issms %}SMS user &nbsp;{% endif %}
+                        {% if contact.auth|ispayroll %}Payroll mgr &nbsp;{% endif %}
+                        {% if contact.auth|isreadonly %}Read Only{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            {{ tfooter() }}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
