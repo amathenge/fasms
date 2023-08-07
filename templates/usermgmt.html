@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% from 'utils.j2' import nav, theader, tfooter %}
 
+{% block scripts %}
+<script src="https://kit.fontawesome.com/f74df82d77.js" crossorigin="anonymous"></script>
+{% endblock %}
 {% block title %}&nbsp;{% endblock %}
 
 {% block heading %}FAWA Statements{% endblock %}
@@ -23,11 +26,11 @@
     </div>
     <div class="row">
         <div class="col-12">
-            {{ theader(['ID', 'Firstname', 'Lastname', 'Email', 'Phone', 'Auth']) }}
+            {{ theader(['ID', 'Firstname', 'Lastname', 'Email', 'Phone', 'Auth', '&nbsp;']) }}
             <tbody>
             {% for contact in contacts %}
                 <tr>
-                    <td scope="row">{{ contact.id }}</td>
+                    <td scope="row"><a href=" {{ url_for('edituser', uid=contact.id) }}"><i class="fas fa-edit"></i></a></td>
                     <td>{{ contact.firstname }}</td>
                     <td>{{ contact.lastname }}</td>
                     <td>{{ contact.email }}</td>
@@ -40,6 +43,7 @@
                         {% if contact.auth|ispayroll %}Payroll mgr &nbsp;{% endif %}
                         {% if contact.auth|isreadonly %}Read Only{% endif %}
                     </td>
+                    <td><a href="{{ url_for('deluser', uid=contact.id) }}"><i class="fas fa-trash-alt"></i></a></td>
                 </tr>
             {% endfor %}
             </tbody>

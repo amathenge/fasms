@@ -572,3 +572,76 @@ def usermgmt():
     # log(f"usrmgr = {contacts}")
     
     return render_template('usermgmt.html', contacts=contacts)
+
+@app.route('/edituser/<uid>', methods=['GET', 'POST'])
+def edituser(uid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+    
+    user = session['user']
+    auth = (1,2)
+
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        firstname = request.form['txtFirst']
+        lastname = request.form['txtLast']
+        email = request.form['txtEmail']
+        admin = request.form['txtAdmin']
+        password = request.form['txtPassword']
+        if len(password) == 0:
+            sql = 'update users set firstname = ?, lastname = ?, email = ?, admin = ? where id = ?'
+            params = [firstname, lastname, email, admin, uid]
+        else:
+            sql = 'update users set firstname = ?, lastname = ?, email = ?, admin = ?, password = ? where id = ?'
+            params = [firstname, lastname, email, admin, hashpass(password), uid]
+
+
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(sql, params)
+        db.commit()
+        return redirect(url_for('staff'))
+
+
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select id, username, firstname, lastname, email, admin from users where id = ?'
+    cur.execute(sql, [uid])
+    result = cur.fetchone()
+    return render_template('edituser.html', contact=result)
+
+
+@app.route('/deluser/<uid>')
+def deluser(uid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+    user = session['user']
+    auth = (1,2)
+
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+    # if 'user' not in session:
+    #     return redirect(url_for('login'))
+    # if 'admin' not in session:
+    #     return redirect(request.referrer)
+
+
+    # don't delete logged in user. -- should also probably not delete admin users...
+    # but that can be fixed later.
+    if int(uid) != int(user['id']):
+        sql = 'delete from users where id = ?'
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(sql,[uid])
+        db.commit()
+
+
+    return redirect(url_for('staff'))
