@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block scripts %}
+    <script>
+      function checkData(theForm) {
+        var pwd = document.querySelector("#txtPassword").value;
+        var chkpwd = document.querySelector("#txtChkpass").value;
+        var pwdmatch = document.querySelector("#pwdMatch")
+        if (pwd != chkpwd) {
+            pwdmatch.innerHTML = "Passwords Don't Match";
+            return false;
+        }
+        return true;
+      }
+    </script>
+{% endblock %}
+
+{% block title %}FAWA Statements - Edit User{% endblock %}
+
+{% block content %}
+{% set user = session['user'] %}
+
+<div class="container m-3">
+      <div class="row">
+        <div class="col-12 border border-secondary">
+            {{ nav(user) }}
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="text-secondary">Edit User</span>
+      </div>
+      <div class="row">
+        <form class="col-8 p-3 border border-secondary" action="{{ url_for('edituser', uid=contact.id) }}" onsubmit="return checkData(this)" method="POST">
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group my-2">
+                        <label for="txtUser">Username</label>
+                        <input class="form-control" type="text" id="txtUser" name="txtUser" maxlength="20" value="{{ contact.username }}" disabled>
+                    </div>    
+                </div>
+                <div class="col-6">
+                    <div class="form-group my-2">
+                        <label for="txtID">Username</label>
+                        <input class="form-control" type="text" id="txtID" name="txtID" maxlength="20" value="{{ contact.id }}" disabled>
+                    </div>    
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group my-2">
+                        <label for="txtFirst">First Name</label>
+                        <input class="form-control" type="text" id="txtFirst" name="txtFirst" placeholder="First Name" maxlength="20" value="{{ contact.firstname }}">
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group my-2">
+                        <label for="txtLast">Last Name</label>
+                        <input class="form-control" type="text" id="txtLast" name="txtLast" placeholder="Last Name" maxlength="20" value="{{ contact.lastname }}">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group my-2">
+                        <label for="txtEmail">Email</label>
+                        <input class="form-control" type="email" id="txtEmail" name="txtEmail" placeholder="user@email.com" maxlength="20" value="{{ contact.email }}">
+                    </div>          
+                </div>
+                <div class="col-6">
+                    <div class="form-group my-2">
+                        <label for="txtAdmin">Admin (Y/N)</label>
+                        <select class="form-control" id="txtAdmin" name="txtAdmin">
+                            {% if contact.admin == 1 %}
+                            <option value="0">N</option>
+                            <option value="1" selected>Y</option>
+                            {% else %}
+                            <option value="0" selected>N</option>
+                            <option value="1">Y</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group my-2">
+                        <label for="txtPassword">Change Password</label>
+                        <input class="form-control" type="password" id="txtPassword" name="txtPassword" placeholder="Password" maxlength="20">
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group my-2">
+                        <label for="txtChkpass">Repeat Password</label>&nbsp;&nbsp;<span id="pwdMatch"></span>
+                        <input class="form-control" type="text" id="txtChkpass" name="txtChkpass" placeholder="Repeat Password" maxlength="20">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-4">
+                <div class="form-group my-2">
+                    <button class="btn btn-primary" type="submit">SAVE USER</button>
+                </div>
+                </div>
+            </div> 
+        </form>
+      </div>
+    </div>
+
+{% endblock %}
