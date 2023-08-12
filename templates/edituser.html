@@ -21,6 +21,8 @@
 {% block content %}
 {% set user = session['user'] %}
 
+{% block heading %}Edit User{% endblock %}
+
 <div class="container m-3">
       <div class="row">
         <div class="col-12 border border-secondary">
@@ -28,23 +30,20 @@
         </div>
       </div>
 
-      <div class="row">
-        <span class="text-secondary">Edit User</span>
+      <div class="row justify-content-center">
+        <span class="text-secondary text-center">Edit User</span>
       </div>
-      <div class="row">
-        <form class="col-8 p-3 border border-secondary" action="{{ url_for('edituser', uid=contact.id) }}" onsubmit="return checkData(this)" method="POST">
+      <div class="row justify-content-center">
+        <form class="col-12 p-3 border border-secondary" action="{{ url_for('edituser', uid=contact.id) }}" onsubmit="return checkData(this)" method="POST">
             <div class="row">
-                <div class="col-6">
-                    <div class="form-group my-2">
-                        <label for="txtUser">Username</label>
-                        <input class="form-control" type="text" id="txtUser" name="txtUser" maxlength="20" value="{{ contact.username }}" disabled>
-                    </div>    
-                </div>
                 <div class="col-6">
                     <div class="form-group my-2">
                         <label for="txtID">Username</label>
                         <input class="form-control" type="text" id="txtID" name="txtID" maxlength="20" value="{{ contact.id }}" disabled>
                     </div>    
+                </div>
+                <div class="col-6">
+                    <p>&nbsp;</p>
                 </div>
             </div>
             <div class="row">
@@ -62,24 +61,28 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-6">
+                <div class="col-12">
                     <div class="form-group my-2">
                         <label for="txtEmail">Email</label>
                         <input class="form-control" type="email" id="txtEmail" name="txtEmail" placeholder="user@email.com" maxlength="20" value="{{ contact.email }}">
                     </div>          
                 </div>
-                <div class="col-6">
-                    <div class="form-group my-2">
-                        <label for="txtAdmin">Admin (Y/N)</label>
-                        <select class="form-control" id="txtAdmin" name="txtAdmin">
-                            {% if contact.admin == 1 %}
-                            <option value="0">N</option>
-                            <option value="1" selected>Y</option>
-                            {% else %}
-                            <option value="0" selected>N</option>
-                            <option value="1">Y</option>
-                            {% endif %}
-                        </select>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="input-group my-2">
+                        <input class="form-check-input" type="checkbox" id="chkadmin" name="chkauth" value="admin" {% if auth|isadmin %}checked{% endif %} {% if not user.auth|isadmin %}disabled{% endif %}>
+                        <span type="input-group-text" class="mx-2">Admin</span>
+                        <input class="form-check-input" type="checkbox" id="chkusrmgr" name="chkauth" value="usrmgr" {% if auth|isusrmgr %}checked{% endif %}>
+                        <span type="input-group-text" class="mx-2">User Mgr</span>
+                        <input class="form-check-input" type="checkbox" id="chkfawa" name="chkauth" value="fawa" {% if auth|isfawa %}checked{% endif %}>
+                        <span type="input-group-text" class="mx-2">FAWA Admin</span>
+                        <input class="form-check-input" type="checkbox" id="chksms" name="chkauth" value="sms" {% if auth|issms %}checked{% endif %}>
+                        <span type="input-group-text" class="mx-2">SMS User</span>
+                        <input class="form-check-input" type="checkbox" id="chkpayroll" name="chkauth" value="payroll" {% if auth|ispayroll %}checked{% endif %}>
+                        <span type="input-group-text" class="mx-2">Payroll Mgr</span>
+                        <input class="form-check-input" type="checkbox" id="chkreadonly" name="chkauth" value="readonly" {% if auth|isreadonly %}checked{% endif %}>
+                        <span type="input-group-text" class="mx-2">Read Only</span>
                     </div>
                 </div>
             </div>
