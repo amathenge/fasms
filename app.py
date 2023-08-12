@@ -591,29 +591,44 @@ def edituser(uid):
         firstname = request.form['txtFirst']
         lastname = request.form['txtLast']
         email = request.form['txtEmail']
-        admin = request.form['txtAdmin']
+        auth = ''
+        # auth = checkbox data. admin, usrmgr, fawa, sms, payroll, readonly
+        authlist = request.form.getlist('chkauth')
+        if 'admin' in authlist:
+            auth += '1'
+        if 'usrmgr' in authlist:
+            auth += '2'
+        if 'fawa' in authlist:
+            auth += '3'
+        if 'sms' in authlist:
+            auth += '4'
+        if 'payroll' in authlist:
+            auth += '5'
+        if 'readonly' in authlist:
+            auth += '6'
         password = request.form['txtPassword']
         if len(password) == 0:
-            sql = 'update users set firstname = ?, lastname = ?, email = ?, admin = ? where id = ?'
-            params = [firstname, lastname, email, admin, uid]
+            sql = 'update users set firstname = ?, lastname = ?, email = ?, auth = ? where id = ?'
+            params = [firstname, lastname, email, auth, uid]
         else:
-            sql = 'update users set firstname = ?, lastname = ?, email = ?, admin = ?, password = ? where id = ?'
-            params = [firstname, lastname, email, admin, hashpass(password), uid]
+            sql = 'update users set firstname = ?, lastname = ?, email = ?, auth = ?, password = ? where id = ?'
+            params = [firstname, lastname, email, auth, hashpass(password), uid]
 
 
         db = get_db()
         cur = db.cursor()
         cur.execute(sql, params)
         db.commit()
-        return redirect(url_for('staff'))
+        return redirect(url_for('usermgmt'))
 
 
     db = get_db()
     cur = db.cursor()
-    sql = 'select id, username, firstname, lastname, email, admin from users where id = ?'
+    sql = 'select id, firstname, lastname, email, auth from users where id = ?'
     cur.execute(sql, [uid])
     result = cur.fetchone()
-    return render_template('edituser.html', contact=result)
+    auth = tuple([int(x) for x in result['auth']])
+    return render_template('edituser.html', contact=result, auth=auth)
 
 
 @app.route('/deluser/<uid>')
