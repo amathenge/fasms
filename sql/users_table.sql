@@ -1,12 +1,3 @@
-drop table if exists access;
-
-create table access (
-    id integer primary key,
-    auth integer not null,
-    access varchar(8),
-    notes text
-);
-
 -- foreign key constraint. need to drop this first.
 drop table if exists otp;
 drop table if exists users;
@@ -19,7 +10,10 @@ CREATE TABLE users (
     password varchar(32) not null,
     phone varchar(32) not null,
     auth varchar(8) not null default '6',
-    locked boolean not null default 0
+    passauth boolean not null default 1,    -- should we use password auth?
+    tfaauth boolean not null default 1,     -- should we use 2FA (sms + email)
+    locked boolean not null default 0,
+    lastlogin datetime not null default current_timestamp
 );
 
 drop table if exists otp;
@@ -32,22 +26,6 @@ create table otp (
     valid boolean not null default 0
 );
 
--- add some sample data
+-- add some sample data (assume we are running this from application home)
 
-.read sampledata.sql
-
-
-drop table if exists member;
-
-create table member (
-    id integer primary key,
-    memberid integer not null,
-    firstname varchar(64) not null,
-    middlename varchar(64),
-    surname varchar(64) not null,
-    phone varchar(16) not null
-);
-
--- add the member data
-
-.read memberdata.sql
+.read sql/sampledata.sql

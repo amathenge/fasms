@@ -30,7 +30,11 @@
             <tbody>
             {% for contact in contacts %}
                 <tr>
+                    {% if user.id != contact.id %}
                     <td scope="row"><a href=" {{ url_for('edituser', uid=contact.id) }}"><i class="fas fa-edit"></i></a></td>
+                    {% else %}
+                    <td scope="row">Me</td>
+                    {% endif %}                    
                     <td>{{ contact.firstname }}</td>
                     <td>{{ contact.lastname }}</td>
                     <td>{{ contact.email }}</td>
