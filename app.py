@@ -49,7 +49,7 @@ def login():
         # open onetime.db->users and check email/password combination
         db = get_db()
         sql = '''
-            select id, firstname, lastname, email, password, phone, auth, locked from users
+            select id, firstname, lastname, email, password, phone, auth, passauth, tfaauth, locked, lastlogin from users
             where email = ? and password = ?
         '''
         cur = db.cursor()
@@ -65,7 +65,7 @@ def login():
             log(f"Login attempt, locked={data['email']}")
             return render_template('login.html', message=message)
         else:
-            # get user information, save to session
+            # get user information, save to session = password was correct.
             auth = tuple([int(x) for x in data['auth']])
             user = {
                 'id': data['id'],
@@ -73,43 +73,55 @@ def login():
                 'lastname': data['lastname'],
                 'email': data['email'],
                 'phone': data['phone'],
+                'passauth': data['passauth'],
+                'tfaauth': data['tfaauth'],
                 'auth': auth,
                 'locked': data['locked'],
+                'lastlogin': data['lastlogin'],
                 'otp': None
             }
             session['user'] = user
             # DEBUG CODE - REMOVE THE LINES BELOW TO GET OTP AUTH
             #
-            userid = session['user']['id']
-            now = datetime.now()
-            sql = 'update users set lastlogin = ? where id = ?'
-            cur.execute(sql, [now, userid])
-            db.commit()
-            session['modified'] = True
-            session['user']['otp'] = '000000'
-            return redirect(url_for('home'))
+            # userid = session['user']['id']
+            # now = datetime.now()
+            # sql = 'update users set lastlogin = ? where id = ?'
+            # cur.execute(sql, [now, userid])
+            # db.commit()
+            # session['modified'] = True
+            # session['user']['otp'] = '000000'
+            # return redirect(url_for('home'))
             #
             # END OF DEBUG
-
-            # on successful password, send a PIN to the phone number.
-            otp = onetime()
-            # invalidate existing tokens
-            sql = 'update otp set valid = 0 where userid = ?'
-            cur.execute(sql, [user['id']])
-            db.commit()
-            # get current date/time for authentication
-            now = datetime.now()
-            # insert otp into database
-            sql = 'insert into otp (userid, otp, otp_time, valid) values (?, ?, ?, ?)'
-            cur.execute(sql, [user['id'], otp, now, True])
-            db.commit()
-            # send OTP to user phone + email.
-            message = f"Your OTP to login to the application is {otp}"
-            sendSMS(message, user['phone'])
-            send_otp_email(message, user['email'])
-            # log(f"OTP sent to {user['phone']} and {user['email']}")
-            return render_template('otp.html')
-            # return redirect(url_for('check_otp'))
+            if user['tfaauth']:
+                # on successful password, send a PIN to the phone number.
+                otp = onetime()
+                # invalidate existing tokens
+                sql = 'update otp set valid = 0 where userid = ?'
+                cur.execute(sql, [user['id']])
+                db.commit()
+                # get current date/time for authentication
+                now = datetime.now()
+                # insert otp into database
+                sql = 'insert into otp (userid, otp, otp_time, valid) values (?, ?, ?, ?)'
+                cur.execute(sql, [user['id'], otp, now, True])
+                db.commit()
+                # send OTP to user phone + email.
+                message = f"Your OTP to login to the application is {otp}"
+                sendSMS(message, user['phone'])
+                send_otp_email(message, user['email'])
+                # log(f"OTP sent to {user['phone']} and {user['email']}")
+                return render_template('otp.html')
+                # return redirect(url_for('check_otp'))
+            else:
+                userid = session['user']['id']
+                now = datetime.now()
+                sql = 'update users set lastlogin = ? where id = ?'
+                cur.execute(sql, [now, userid])
+                db.commit()
+                session.modified = True
+                session['user']['otp'] = '000000'
+                return redirect(url_for('home'))
         
     return render_template('login.html', message=message)
 
@@ -556,7 +568,7 @@ def usermgmt():
     cur = db.cursor()
     sql = '''
         select id, firstname, lastname, email, phone, email, phone, auth, lastlogin
-        from users where locked = 0
+        from users
     '''
     cur.execute(sql)
     data = cur.fetchall()
@@ -587,7 +599,17 @@ def edituser(uid):
         else:
             return redirect(url_for('home'))
 
+    # for now, user cannot add/remove their own privileges.
+    if user['id'] == uid:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
     if request.method == 'POST':
+        if request.form['submit'] == 'cancel':
+            return redirect(url_for('usermgmt'))
+        
         firstname = request.form['txtFirst']
         lastname = request.form['txtLast']
         email = request.form['txtEmail']
@@ -605,15 +627,24 @@ def edituser(uid):
         if 'payroll' in authlist:
             auth += '5'
         if 'readonly' in authlist:
-            auth += '6'
+            # if readonly has been flagged, remove all others, unless this is an admin then
+            # don't change.
+            if 'admin' not in authlist:
+                auth = '6'
+        authtype = request.form.getlist('authtype')
+        passauth = 'passauth' in authtype
+        tfaauth = 'tfaauth' in authtype
+        locked = 'locked' in authtype
+        # one of the authtypes must be there, or we lock the account
+        if not passauth and not tfaauth:
+            locked = 1
         password = request.form['txtPassword']
         if len(password) == 0:
-            sql = 'update users set firstname = ?, lastname = ?, email = ?, auth = ? where id = ?'
-            params = [firstname, lastname, email, auth, uid]
+            sql = 'update users set firstname = ?, lastname = ?, email = ?, auth = ?, passauth = ?, tfaauth = ?, locked = ? where id = ?'
+            params = [firstname, lastname, email, auth, passauth, tfaauth, locked, uid]
         else:
-            sql = 'update users set firstname = ?, lastname = ?, email = ?, auth = ?, password = ? where id = ?'
-            params = [firstname, lastname, email, auth, hashpass(password), uid]
-
+            sql = 'update users set firstname = ?, lastname = ?, email = ?, auth = ?, passauth = ?, tfaauth = ?, locked = ?, password = ? where id = ?'
+            params = [firstname, lastname, email, auth, passauth, tfaauth, locked, hashpass(password), uid]
 
         db = get_db()
         cur = db.cursor()
@@ -621,10 +652,9 @@ def edituser(uid):
         db.commit()
         return redirect(url_for('usermgmt'))
 
-
     db = get_db()
     cur = db.cursor()
-    sql = 'select id, firstname, lastname, email, auth from users where id = ?'
+    sql = 'select id, firstname, lastname, email, auth, passauth, tfaauth, locked from users where id = ?'
     cur.execute(sql, [uid])
     result = cur.fetchone()
     auth = tuple([int(x) for x in result['auth']])

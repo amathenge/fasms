@@ -79,10 +79,22 @@
                         <span type="input-group-text" class="mx-2">FAWA Admin</span>
                         <input class="form-check-input" type="checkbox" id="chksms" name="chkauth" value="sms" {% if auth|issms %}checked{% endif %}>
                         <span type="input-group-text" class="mx-2">SMS User</span>
-                        <input class="form-check-input" type="checkbox" id="chkpayroll" name="chkauth" value="payroll" {% if auth|ispayroll %}checked{% endif %}>
+                        <input class="form-check-input" type="checkbox" id="chkpayroll" name="chkauth" value="payroll" {% if auth|ispayroll %}checked{% endif %} {% if not user.auth|isadmin %}disabled{% endif %}>
                         <span type="input-group-text" class="mx-2">Payroll Mgr</span>
                         <input class="form-check-input" type="checkbox" id="chkreadonly" name="chkauth" value="readonly" {% if auth|isreadonly %}checked{% endif %}>
                         <span type="input-group-text" class="mx-2">Read Only</span>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="input-group my-2">
+                        <input class="form-check-input" type="checkbox" id="chkpassauth" name="authtype" value="passauth" {% if contact.passauth %}checked{% endif %} {% if not user.auth|isadmin %}disabled{% endif %}>
+                        <span type="input-group-text" class="mx-2">Password Authentication</span>
+                        <input class="form-check-input" type="checkbox" id="chktfaauth" name="authtype" value="tfaauth" {% if contact.tfaauth %}checked{% endif %} {% if not user.auth|isadmin %}disabled{% endif %}>
+                        <span type="input-group-text" class="mx-2">2FA Authentication</span>
+                        <input class="form-check-input" type="checkbox" id="chklocked" name="authtype" value="locked" {% if contact.locked %}checked{% endif %}>
+                        <span type="input-group-text" class="mx-2">Account Locked</span>
                     </div>
                 </div>
             </div>
@@ -102,9 +114,17 @@
             </div>
             <div class="row">
                 <div class="col-4">
-                <div class="form-group my-2">
-                    <button class="btn btn-primary" type="submit">SAVE USER</button>
+                    <div class="form-group my-2">
+                        <button class="btn btn-primary" type="submit" name="submit" value="submit">SAVE USER</button>
+                    </div>
                 </div>
+                <div class="col-4">
+                    <p>&nbsp;</p>
+                </div>
+                <div class="col-4 d-flex justify-content-end">
+                    <div class="form-group my-2">
+                        <button class="btn btn-primary" type="submit" name="submit" value="cancel" formnovalidate="formnovalidate">CANCEL</button>
+                    </div>
                 </div>
             </div> 
         </form>

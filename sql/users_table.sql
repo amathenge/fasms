@@ -10,7 +10,10 @@ CREATE TABLE users (
     password varchar(32) not null,
     phone varchar(32) not null,
     auth varchar(8) not null default '6',
-    locked boolean not null default 0
+    passauth boolean not null default 1,    -- should we use password auth?
+    tfaauth boolean not null default 1,     -- should we use 2FA (sms + email)
+    locked boolean not null default 0,
+    lastlogin datetime not null default current_timestamp
 );
 
 drop table if exists otp;
