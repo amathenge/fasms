@@ -104,7 +104,7 @@ def login():
                 now = datetime.now()
                 # insert otp into database
                 sql = 'insert into otp (userid, otp, otp_time, valid) values (?, ?, ?, ?)'
-                cur.execute(sql, [user['id'], otp, now, True])
+                cur.execute(sql, [user['id'], otp, now, 1])
                 db.commit()
                 # send OTP to user phone + email.
                 message = f"Your OTP to login to the application is {otp}"
@@ -141,7 +141,7 @@ def check_otp():
         # get OTP saved in database.
         db = get_db()
         cur = db.cursor()
-        sql = 'select id, userid, userid, otp, otp_time, valid from otp where userid = ? and otp = ? and valid = true'
+        sql = 'select id, userid, userid, otp, otp_time, valid from otp where userid = ? and otp = ? and valid = 1'
         cur.execute(sql, [userid, otp])
         data = cur.fetchone()
         if data is None:
