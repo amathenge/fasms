@@ -10,7 +10,15 @@
     <a class="nav-item nav-link text-primary" href="{{ url_for('fawastatements') }}">FAWA Statements</a>
     {% endif %}
     {% if user.auth|isadmin or user.auth|issms %}
-    <a class="nav-item nav-link text-primary" href="{{ url_for('sendgenericsms') }}">Send SMS</a>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-primary" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Send SMS
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="navbarDarkDropdownMenuLink">
+            <li><a class="nav-item nav-link text-primary" href="{{ url_for('sendgenericsms') }}">General SMS</a></li>
+            <li><a class="nav-item nav-link text-primary" href="{{ url_for('sendonesms') }}">Staff HR SMS</a></li>
+        </ul>
+    </li>    
     {% endif %}
     </div>
 </div>
