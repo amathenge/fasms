@@ -392,15 +392,15 @@ def managefiles():
     # user is logged in, now just send a stub page.
     return render_template('under_construction.html', page='Manage Files')
 
-# send a single SMS statement.
-@app.route('/sendonesms/<uid>', methods=['GET', 'POST'])
-def sendonesms(uid):
+# send a single SMS statement - this will present a form.
+@app.route('/sendonesms', methods=['GET', 'POST'])
+def sendonesms():
     if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
 
     user = session['user']
-    # only admin=1 and fawa=3 should use this page.
-    auth = (1, 3)
+    # only admin=1, fawa=3 and sms=4 should use this page.
+    auth = (1, 3, 4)
     if not hasauth(list(user['auth']), auth):
         if request.referrer:
             return redirect(request.referrer)
@@ -408,6 +408,24 @@ def sendonesms(uid):
             return redirect(url_for('home'))
 
     return render_template('under_construction.html', page="Send SMS")
+
+# send HR SMS
+@app.route('/sendhrsms/<uid>', methods=['GET', 'POST'])
+def sendhrsms(uid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and sms=4 should use this page.
+    auth = (1, 4)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    return render_template('under_construction.html', page="Send HR SMS")
+
 
 # generic form for sending an SMS
 @app.route('/sendgenericsms', methods=['GET', 'POST'])

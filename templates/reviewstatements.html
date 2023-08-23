@@ -27,11 +27,19 @@
             <span>&nbsp;<small>[Processed]</small></span>
             {% endif %}
         </div>
+        {% if header.processed == 0 %}
         <div class="col-6 d-flex justify-content-end">
             <form action="{{ url_for('sendallsms', sid=header.id) }}" method="POST">
                 <button class="btn btn-primary d-grid" type="submit">Send All SMS</button>
             </form>
         </div>        
+        {% else %}
+        <div class="col-6 d-flex justify-content-end">
+            <form action="{{ url_for('showsmslogbyid', sid=header.id) }}" method="POST">
+                <button class="btn btn-primary d-grid" type="submit">Show SMS Log</button>
+            </form>
+        </div>        
+        {% endif %}
     </div>
     <div class="row justify-content-center">
         <div class="col-12">
