@@ -408,6 +408,14 @@ def upload():
     # not in post mode - show the upload form
     return render_template('upload.html', message=message)
 
+@app.route('/fawafiledownload/<fid>', methods=['GET', 'POST'])
+def fawafiledownload(fid):
+    pass
+
+@app.route('/fawafiledelete/<fid>', methods=['GET', 'POST'])
+def fawafiledelete(fid):
+    pass
+
 @app.route('/checkstatements', methods=['GET', 'POST'])
 def checkstatements():
     if 'user' not in session or not session['user']['otp']:
@@ -438,6 +446,9 @@ def checkstatements():
         })
     return render_template('checkstatements.html', statements=statements)
 
+# manage uploaded FAWA statement files.
+# can delete or download a file. Downloading will allow the user to make some changes
+# and then upload it again.
 @app.route('/managefiles', methods=['GET', 'POST'])
 def managefiles():
     if 'user' not in session or not session['user']['otp']:
@@ -452,8 +463,16 @@ def managefiles():
         else:
             return redirect(url_for('home'))
 
-    # user is logged in, now just send a stub page.
-    return render_template('under_construction.html', page='Manage Files')
+    # table = uploads.
+    # fields id (pk unique), filename (varchar(256))
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select id, filename from uploads'
+    cur.execute(sql)
+    data = cur.fetchall()
+
+    return render_template('fawafiles.html', files=data)
+
 
 # send a single SMS statement - this will present a form.
 @app.route('/sendonesms', methods=['GET', 'POST'])
