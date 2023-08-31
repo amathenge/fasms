@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}Check Payroll Paystubs{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-6">
+            <table class="table table-striped">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Company</th>
+                    <th scope="col">Payroll Date</th>
+                    <th scope="col">Processed</th>
+                </tr>
+                {% for row in payrolls %}
+                <tr>
+                    <td><a href='{{ url_for("reviewpayroll", pid=row.payid) }}'>{{ row.payid }}</a></td>
+                    <td>{{ row.company }}</td>
+                    <td>{{ row.payrolldate }}</td>
+                    {% if row.processed == 0 %}
+                    <td>N</td>
+                    {% else %}
+                    <td>Y</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

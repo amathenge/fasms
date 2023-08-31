@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}Paystub SMS - LOG{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <p class="fs-4 text-center">{{ company }} - Paystub Log Records for {{ payrolldate }}</p>
+        </div>
+    </div>
+    <div class="row my-5">
+        <div class="col-12">
+            <table class="table table-striped">
+                <tr class="border-bottom">
+                    <th scope="col">&nbsp;</th>
+                    <th scope="col">Employee</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">SMS Text</th>
+                    <th scope="col">SMS Result</th>
+                </tr>
+                {% for row in log %}
+                <tr class="border-bottom">
+                    <td scope="row">{{ loop.index }}</td>
+                    <td>{{ row.fullname }}</td>
+                    <td>{{ row.phone }}</td>
+                    <td>{{ row.sms|nl2br|safe }}</td>
+                    <td>{{ row.smsresult|safe }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

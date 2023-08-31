@@ -5,7 +5,8 @@ from sendEmail import send_otp_email
 from sms import sendSMS
 import os
 from werkzeug.utils import secure_filename
-from fawa import importdata, buildDateString
+from fawa import importdata, buildPayrollDate, buildDateString
+from payimport import importpaydata, printSlip
 import cred
 
 app = Flask(__name__)
@@ -41,6 +42,8 @@ def login():
     if 'user' in session and session['user']['otp']:
         return redirect(url_for('home'))
     
+    now = datetime.now()
+    now_string = now.strftime('%d%b%Y %H:%M:%S').upper()
     message = None
     # process POST
     if request.method == 'POST':
@@ -81,6 +84,7 @@ def login():
                 'otp': None
             }
             session['user'] = user
+            session.modified = True
             # DEBUG CODE - REMOVE THE LINES BELOW TO GET OTP AUTH
             #
             # userid = session['user']['id']
@@ -121,6 +125,7 @@ def login():
                 db.commit()
                 session.modified = True
                 session['user']['otp'] = '000000'
+                log(f'Login successful for user id={userid} at {now_string}')
                 return redirect(url_for('home'))
         
     return render_template('login.html', message=message)
@@ -131,7 +136,9 @@ def check_otp():
     # no need to check for OTP if the user is already logged in
     if 'user' in session and session['user']['otp']:
         return redirect(url_for('home'))
-    
+
+    now = datetime.now()
+    now_string = now.strftime('%d%b%Y %H:%M:%S').upper()
     # define a default return message
     message = "Invalid Data"
     if request.method == 'POST':
@@ -160,12 +167,12 @@ def check_otp():
                 log(f"OTP Success user={session['user']['email']}")
                 session['modified'] = True
                 session['user']['otp'] = otp
+                userid = session['user']['id']
+                log(f"OTP successful for user id={userid} at {now_string}")
                 return redirect(url_for('home'))
             else:
                 log(f"OTP timeout user={session['user']['email']}")
                 message = 'Timeout... try again'
-    else:
-        log("OTP Post not processed.")
 
     return render_template('login.html', message=message)
 
@@ -275,21 +282,77 @@ def sendallsms(sid):
 
     return render_template('smsresult.html', sid=sid, message=f"{smscount} messages sent")
 
-
 @app.route('/payroll', methods=['GET', 'POST'])
 def payroll():
     # check if logged in, then continue.
     if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('login'))
     
-    # user is logged in, now just send a stub page.
-    return render_template('under_construction.html', page='Payroll')
+    # user is logged in - show payroll management options.
+    return render_template('paystubs.html')
+
+# payroll processing files. For sending payroll sms.
+@app.route('/payupload', methods=['GET', 'POST'])
+def payupload():
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+    if 'callform' in request.form:
+        return render_template('payupload.html', message=None)
+    
+    message = None
+    if request.method == "POST":
+        # get the file
+        if 'file' in request.files:
+            file = request.files['file']
+        else:
+            file = None
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            db = get_db()
+            sql = 'select distinct filename from payuploads where filename = ?'
+            cur = db.cursor()
+            cur.execute(sql, [os.path.join(app.config['UPLOAD_FOLDER'],filename)])
+            data = cur.fetchone()
+            if data is None:
+                sql = 'insert into payuploads (filename) values (?)'
+                cur.execute(sql, [os.path.join(app.config['UPLOAD_FOLDER'], filename)])
+                db.commit()
+                fileid = cur.lastrowid
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                message = "File uploaded"
+                log(f'/payupload - uploaded file id = {fileid} name = {filename}')
+                # import data from the file (xlsx) into the database.
+                result = importpaydata(fileid)
+                if not result:
+                    log('/payupload - nothing uploaded')
+                    message += ' - DATA NOT IMPORTED'
+                else:
+                    log('/payupload - data uploaded')
+                    message += f' DATA IMPORTED {result} rows'
+            else:
+                # file has already been uploaded.
+                message = f"File <b><u>{data['filename']}</u></b> exists - uploaded previously."
+    # not in post mode - show the upload form
+    return render_template('payupload.html', message=message)   
 
 # logout from system. 
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
+    now = datetime.now()
+    now_string = now.strftime('%d%b%Y_%H:%M:%S').upper()
     # clear session information and send user to the login page.
     if 'user' in session:
+        userid = session['user']['id']
+        log(f"user id={userid} logged out at: {now_string}")
         del session['user']
     return redirect(url_for('login'))
 
@@ -708,3 +771,233 @@ def deluser(uid):
 
 
     return redirect(url_for('staff'))
+
+
+@app.route('/paystatements', methods=['GET', 'POST'])
+def paystatements():
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    # show table of all statements in the database.
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select p.payid, c.company, p.paymonth, p.payyear, p.processed from payrollheader p
+        join company c on (p.companyid = c.id) order by p.payid desc
+    '''
+    cur.execute(sql)    
+    data = cur.fetchall()
+    payrolls = []
+    for row in data:
+        payrolls.append({
+            'payid': row['payid'],
+            'company': row['company'],
+            'payrolldate': buildPayrollDate(int(row['paymonth']), int(row['payyear'])),
+            'processed': row['processed']
+        })
+    return render_template('checkpayroll.html', payrolls=payrolls)
+
+@app.route('/reviewpayroll/<pid>', methods=['GET', 'POST'])
+def reviewpayroll(pid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select p.payid, c.company, p.paymonth, p.payyear, p.processed from payrollheader p
+        join company c on (c.id = p.companyid) 
+        where p.payid = ?
+    '''
+    cur.execute(sql, [pid])
+    data = cur.fetchone()
+    if data is None:
+        return redirect(request.referrer)
+    
+    payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
+    header = {
+        'id': data['payid'],
+        'company': data['company'],
+        'payrolldate': payrolldate,
+        'processed': data['processed']
+    }
+    sql = '''
+        select id, company, employeeno, fullname, phone, nationalid, krapin, jobdescription,
+        grosspay, houseallowance, otherpay, overtime, benefits, nssf, taxableincome, nhif, paye,
+        housinglevy, fawaloan, payadvance, absent, fawacontribution, housingbenefit,
+        otherdeductions, netpay from payroll where payrollid = ?
+    '''
+    cur.execute(sql, [pid])
+    data = cur.fetchall()
+    if data is None:
+        return redirect(request.referrer)
+    
+    return render_template('reviewpayroll.html', header=header, payroll=data)
+
+@app.route('/sendpaystubsms/<pid>', methods=['GET', 'POST'])
+def sendpaystubsms(pid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    # check if processed already
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select payid, companyid, paydate, paymonth, payyear, processed from payrollheader where payid = ?'
+    cur.execute(sql, [pid])
+    data = cur.fetchone()
+    if data is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+        
+    if data['processed'] == 1:
+        # already processed.
+        return render_template('paysmsresult.html', pid=data['payid'], message="Already Processed")
+    
+    payid = data['payid']
+    payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
+
+    # update payrollheader->processed = True
+    sql = 'update payrollheader set processed = 1 where payid = ?'
+    cur.execute(sql, [pid])
+    db.commit()
+
+    # send all paystubs for payrollheader->payid = pid
+    sql = '''
+        select id, payrollid, paymonth, payyear, company, employeeno, fullname, phone,
+        nationalid, krapin, jobdescription, grosspay, houseallowance, otherpay, overtime,
+        benefits, nssf, taxableincome, nhif, paye1, paye2, paye3, paye, housinglevy, 
+        fawaloan, payadvance, absent, fawacontribution, housingbenefit, otherdeductions,
+        netpay from payroll where payrollid = ?
+    '''
+    cur.execute(sql, [pid])
+    data = cur.fetchall()
+    smsdate = datetime.now()
+    smscount = 0
+    for row in data:
+        slip = {
+            'id': row['id'],
+            'payrollid': row['payrollid'],
+            'paymonth': row['paymonth'],
+            'payyear': row['payyear'],
+            'company': row['company'],
+            'employeeno': row['employeeno'],
+            'fullname': row['fullname'],
+            'phone': row['phone'],
+            'nationalid': row['nationalid'],
+            'krapin': row['krapin'],
+            'jobdescription': row['jobdescription'],
+            'grosspay': row['grosspay'],
+            'houseallowance': row['houseallowance'],
+            'otherpay': row['otherpay'],
+            'overtime': row['overtime'],
+            'benefits': row['benefits'],
+            'nssf': row['nssf'],
+            'taxableincome': row['taxableincome'],
+            'nhif': row['nhif'],
+            'paye1': row['paye1'],
+            'paye2': row['paye2'],
+            'paye3': row['paye3'],
+            'paye': row['paye'],
+            'housinglevy': row['housinglevy'],
+            'fawaloan': row['fawaloan'],
+            'payadvance': row['payadvance'],
+            'absent': row['absent'],
+            'fawacontribution': row['fawacontribution'],
+            'housingbenefit': row['housingbenefit'],
+            'otherdeductions': row['otherdeductions'],
+            'netpay': row['netpay']
+        }
+        sms_string = printSlip(slip, payrolldate)
+        sql = '''
+            insert into paysmslog (smsdate, payrollid, employeeno, phone, sms)
+            values (?, ?, ?, ?, ?)
+        '''
+        cur.execute(sql, [smsdate, payid, row['employeeno'], row['phone'], sms_string])
+        db.commit()
+        lastinsertid = cur.lastrowid
+
+        # send SMS
+        if '000000' not in row['phone']:
+            smsrecipient = row['phone']
+            smsresult = sendSMS(sms_string, [smsrecipient])
+            sql = 'update paysmslog set smsresult = ? where id = ?'
+            cur.execute(sql, [smsresult, lastinsertid])
+            db.commit()
+            smscount += 1
+
+    return render_template('paysmsresult.html', pid=pid, message=f'{smscount} messages sent')
+    
+@app.route('/showpaysmslogbyid/<pid>', methods=['GET', 'POST'])
+def showpaysmslogbyid(pid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select p.paymonth, p.payyear, c.company from payrollheader p
+        join company c on (p.companyid = c.id) and p.payid = ?
+    '''
+    cur.execute(sql, [pid])
+    data = cur.fetchone()
+    if data is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+        
+    payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
+    company = data['company']
+    sql = '''
+        select s.firstname || ' ' || s.lastname as fullname, l.phone, l.sms, l.smsresult
+        from paysmslog l join staff s on (l.employeeno = s.employeeno)
+        and l.payrollid = ?
+    '''
+    cur.execute(sql, [pid])
+    data = cur.fetchall()
+    if data is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+
+    return render_template('paysmslog.html', log=data, company=company, payrolldate=payrolldate)
