@@ -1,0 +1,16 @@
+__pycache__/*
+cred.py
+*.db
+database.py
+.gitignore
+*.xlsx
+*.xlsm
+*.xls
+sampledata.sql
+memberdata.sql
+files/*
+*.sh
+company_data.sql
+staff_data.sql
+staff_data.xlsx
+make_staff_data.py
