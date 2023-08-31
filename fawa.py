@@ -291,3 +291,36 @@ def buildDateString(d, m, y):
     s += str(y)
 
     return s
+
+def buildPayrollDate(m, y):
+    s = ''
+    if m == 1:
+        s += 'January '
+    elif m == 2:
+        s += 'February '
+    elif m == 3:
+        s += 'March '
+    elif m == 4:
+        s += 'April '
+    elif m == 5:
+        s += 'May '
+    elif m == 6:
+        s += 'June '
+    elif m == 7:
+        s += 'July '
+    elif m == 8:
+        s += 'August '
+    elif m == 9:
+        s += 'September '
+    elif m == 10:
+        s += 'October '
+    elif m == 11:
+        s += 'November '
+    elif m == 12:
+        s += 'December '
+    else:
+        s += 'UNKNOWN '
+
+    s += str(y)
+
+    return s

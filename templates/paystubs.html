@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}Pay Statements{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    {% if message %}
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <p class="text-center">{{ message }}</p>
+        </div>
+    </div>
+    {% endif %}
+    <div class="row my-2 justify-content-center">
+        <div class="col-6 my-2">
+            <form action="/payupload" method="POST">
+                <div class="form-group d-grid my-2 text-center">
+                    <button class="btn btn-primary d-grid" type="submit" name="callpayform" id="callpayform">Upload Payroll file</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row my-2 justify-content-center">
+        <div class="col-6 my-2">
+            <form action="/paystatements" method="POST">
+                <div class="form-group d-grid my-2 text-center">
+                    <button class="btn btn-primary d-grid" type="submit" name="checkpay" id="checkpay">Check Payroll data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row my-2 justify-content-center">
+        <div class="col-6 my-2">
+            <form action="/payfiles" method="POST">
+                <div class="form-group d-grid my-2 text-center">
+                    <button class="btn btn-primary d-grid" type="submit" name="managepayfiles" id="managepayfiles">Manage Uploaded Payroll files</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
