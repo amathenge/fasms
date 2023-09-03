@@ -185,7 +185,6 @@ def home():
     # user is logged in, now just send a stub page.
     return render_template('home.html')
 
-
 @app.route('/fawastatements', methods=['GET', 'POST'])
 def fawastatements():
     # check if logged in, then continue.
@@ -562,7 +561,12 @@ def checkstatements():
     # show table of all statements in the database.
     db = get_db()
     cur = db.cursor()
-    sql = 'select id, fileid, statementday, statementmonth, statementyear, processed from fawaheader'
+    sql = '''
+        select h.id, h.fileid, h.statementday, h.statementmonth, h.statementyear, h.processed,
+        count(f.id) as rcount from fawaheader h left join fawastatement f
+        on (h.id = f.statementid) group by h.id, h.fileid, h.statementday, h.statementmonth,
+        h.statementyear, h.processed
+    '''
     cur.execute(sql)    
     data = cur.fetchall()
     statements = []
@@ -570,6 +574,7 @@ def checkstatements():
         statements.append({
             'id': row['id'],
             'fileid': row['fileid'],
+            'recordcount': row['rcount'],
             'statementdate': buildDateString(row['statementday'], row['statementmonth'], row['statementyear']),
             'processed': row['processed']
         })
@@ -732,6 +737,57 @@ def reviewstatements(sid):
         return redirect(request.referrer)
     
     return render_template('reviewstatements.html', header=header, statements=data)
+
+# review a single FAWA statement detail.
+# uid = unique statement data in fawastatement table.
+@app.route('/reviewonefawastatement/<uid>', methods=['GET', 'POST'])
+def reviewonefawastatement(uid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select id, statementid, memberno, membername, totaldeposit, monthlydeposit, totalloan_principal,
+        totalloanpaid, outstandingloan, loanrepayment, guaranteed, loanroom_noguarantee, loanroom_guarantee,
+        phone from fawastatement where id = ?
+    '''
+    cur.execute(sql, [uid])
+    data = cur.fetchone()
+    if data is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+        
+    # get statement date information.
+    statementid = data['statementid']
+    sql = 'select id, statementday, statementmonth, statementyear, processed from fawaheader where id = ?'
+    cur.execute(sql, [statementid])
+    data2 = cur.fetchone()
+    if data2 is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    statementdate = buildDateString(data2['statementday'], data2['statementmonth'], data2['statementyear'])
+    header = {
+        'id': data2['id'],
+        'statementdate': statementdate,
+        'processed': data2['processed']
+    }
+
+    return render_template('fawastatementdetail.html', header=header, statement=data)        
 
 # md = message date (date that the SMS was sent)
 @app.route('/showsmslogbyid/<sid>', methods=['GET', 'POST'])
@@ -935,8 +991,12 @@ def paystatements():
     db = get_db()
     cur = db.cursor()
     sql = '''
-        select p.payid, c.company, p.paymonth, p.payyear, p.processed from payrollheader p
-        join company c on (p.companyid = c.id) order by p.payid desc
+        select p.payid, c.company, p.paymonth, p.payyear, p.processed, count(d.id) as recordcount
+        from payrollheader p
+        join company c on (p.companyid = c.id) 
+        join payroll d on (p.payid = d.payrollid)
+        group by p.payid, c.company, p.paymonth, p.payyear, p.processed
+        order by p.payid desc
     '''
     cur.execute(sql)    
     data = cur.fetchall()
@@ -945,6 +1005,7 @@ def paystatements():
         payrolls.append({
             'payid': row['payid'],
             'company': row['company'],
+            'recordcount': row['recordcount'],
             'payrolldate': buildPayrollDate(int(row['paymonth']), int(row['payyear'])),
             'processed': row['processed']
         })
@@ -995,6 +1056,47 @@ def reviewpayroll(pid):
         return redirect(request.referrer)
     
     return render_template('reviewpayroll.html', header=header, payroll=data)
+
+@app.route('/reviewonepayrollstatement/<uid>', methods=['GET', 'POST'])
+def reviewonepayrollstatement(uid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select id, payrollid, paymonth, payyear, company, employeeno, fullname, phone, nationalid,
+        krapin, jobdescription, grosspay, houseallowance, otherpay, overtime, benefits, nssf, 
+        taxableincome, nhif, paye, housinglevy, fawaloan, payadvance, absent, fawacontribution, 
+        housingbenefit, otherdeductions, netpay from payroll where id = ?
+    '''
+    cur.execute(sql, [uid])
+    data = cur.fetchone()
+    if data is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    # header
+    payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
+    header = {
+        'id': data['payrollid'],
+        'company': data['company'],
+        'payrolldate': payrolldate
+    }
+
+    return render_template('reviewpayrolldetail.html', header=header, payroll=data)
+    
 
 @app.route('/sendpaystubsms/<pid>', methods=['GET', 'POST'])
 def sendpaystubsms(pid):

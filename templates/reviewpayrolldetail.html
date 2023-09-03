@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav, databox %}
+
+{% block scripts %}
+<script src="https://kit.fontawesome.com/f74df82d77.js" crossorigin="anonymous"></script>
+{% endblock %}
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}Review Paystubs{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    <div class="row justify-content-center my-2 py-2 border-top border-bottom border-primary">
+        <div class="col-6">
+            <span class="fs-6"><b>{{ header.company }}</b>&nbsp;-&nbsp;</span>
+            <span class="fs-6">Payroll Date: {{ header.payrolldate }}</span>
+        </div>
+        <!-- 
+        {% if header.processed == 0 %}
+        <div class="col-6 d-flex justify-content-end">
+            <form action="{{ url_for('sendpaystubsms', pid=header.id) }}" method="POST">
+                <button class="btn btn-primary d-grid" type="submit">Send All Paystubs</button>
+            </form>
+        </div>        
+        {% else %}
+        <div class="col-6 d-flex justify-content-end">
+            <form action="{{ url_for('showpaysmslogbyid', pid=header.id) }}" method="POST">
+                <button class="btn btn-primary d-grid" type="submit">Show Paystub Log</button>
+            </form>
+        </div>        
+        {% endif %}
+        -->
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <table class="table table-sm table-bordered small">
+                <tbody>
+                    <tr>
+                        <td>
+                            {{ databox('employeeno', 'Employee No', payroll.employeeno) }}
+                        </td>
+                        <td>
+                            {{ databox('fullname', 'Full Name', payroll.fullname) }}
+                        </td>
+                        <td>
+                            {{ databox('phone', 'Phone', payroll.phone) }}
+                        </td>
+                        <td>
+                            {{ databox('nationalid', 'National ID', payroll.nationalid) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            {{ databox('krapin', 'KRA PIN', payroll.krapin) }}
+                        </td>
+                        <td>
+                            {{ databox('jobdescription', 'Job Description', payroll.jobdescription) }}
+                        </td>
+                        <td>
+                            {{ databox('grosspay', 'Gross Pay', payroll.grosspay) }}
+                        </td>
+                        <td>
+                            {{ databox('houseallowance', 'House Allowance', payroll.houseallowance) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            {{ databox('otherpay', 'Other Pay', payroll.otherpay) }}
+                        </td>
+                        <td>
+                            {{ databox('overtime', 'Overtime', payroll.overtime) }}
+                        </td>
+                        <td>
+                            {{ databox('benefits', 'Benefits', payroll.benefits) }}
+                        </td>
+                        <td>
+                            {{ databox('nssf', 'NSSF', payroll.nssf) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            {{ databox('taxableincome', 'Taxable Income', payroll.taxableincome) }}
+                        </td>
+                        <td>
+                            {{ databox('nhif', 'NHIF', payroll.nhif) }}
+                        </td>
+                        <td>
+                            {{ databox('paye', 'PAYE', payroll.paye) }}
+                        </td>
+                        <td>
+                            {{ databox('housinglevy', 'Housing Levy', payroll.housinglevy) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            {{ databox('fawaloan', 'FAWA Loan', payroll.fawaloan) }}
+                        </td>
+                        <td>
+                            {{ databox('payadvance', 'Advance', payroll.payadvance) }}
+                        </td>
+                        <td>
+                            {{ databox('absent', 'Absenteeism Deduction', payroll.absent) }}
+                        </td>
+                        <td>
+                            {{ databox('fawacontribution', 'FAWA Contribution', payroll.fawacontribution) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            {{ databox('housingbenefit', 'Housing Benefit', payroll.housingbenefit) }}
+                        </td>
+                        <td>
+                            {{ databox('otherdeductions', 'Other Deductions', payroll.otherdeductions) }}
+                        </td>
+                        <td>
+                            {{ databox('netpay', 'Net Pay', payroll.netpay) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

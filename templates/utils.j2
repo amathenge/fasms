@@ -94,3 +94,11 @@
 {% macro tfooter() %}
     </table>
 {%- endmacro %}
+
+# a disabled text box with a label on the top.
+{% macro databox(item, label, value) -%}
+<div class="form-group">
+    <label for="{{ item }}" class="form-label">{{ label }}</label>
+    <input type="text" class="form-control" id="{{ item }}" name="{{ item }}" value="{% if value %}{{ value }}{% else %}&nbsp;{% endif %}" disabled>
+</div>
+{%- endmacro %}
