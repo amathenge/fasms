@@ -16,12 +16,13 @@
         </div>
     </div>
     <div class="row justify-content-center">
-        <div class="col-6">
+        <div class="col-8">
             <table class="table table-striped">
                 <tr>
                     <th scope="col">ID</th>
                     <th scope="col">File ID</th>
                     <th scope="col">Statement Date</th>
+                    <th scope="col">Total Records</th>
                     <th scope="col">Processed</th>
                 </tr>
                 {% for row in statements %}
@@ -29,6 +30,7 @@
                     <td><a href='{{ url_for("reviewstatements", sid=row.id) }}'>{{ row.id }}</a></td>
                     <td>{{ row.fileid }}</td>
                     <td>{{ row.statementdate }}</td>
+                    <td>{{ row.recordcount }}</td>
                     {% if row.processed == 0 %}
                     <td>N</td>
                     {% else %}

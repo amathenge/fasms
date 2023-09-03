@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% from 'utils.j2' import nav %}
+
+{% block title %}&nbsp;{% endblock %}
+
+{% block heading %}Payroll SMS Statement{% endblock %}
+
+{% block content %}
+
+{% set user = session['user'] %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {{ nav(user) }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <p class="fs-4 text-center">Payroll SMS Result</p>
+        </div>
+    </div>
+    <div class="row my-5">
+        <div class="col-4 border-bottom">&nbsp;</div>
+        <div class="col-8 border-bottom">
+            <p><pre>{{ message|safe }}</pre></p>
+        </div>
+    </div>
+    <div class="row my-5">
+        <div class="col-4 border-bottom">&nbsp;</div>
+        <div class="col-8 border-bottom">
+            <p><pre>{{ sms|safe }}</pre></p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

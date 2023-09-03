@@ -65,7 +65,7 @@
                 {% for row in statements %}
                     <tr class="small">
                         <td scope="row">{{ row.memberno }}</td>
-                        <td>{{ row.membername}}</td>
+                        <td><a href="{{ url_for('reviewonefawastatement', uid=row.id) }}">{{ row.membername}}</a></td>
                         <td>{{ row.totaldeposit }}</td>
                         <td>{{ row.monthlydeposit }}</td>
                         {% if row.totalloan_principal %}
@@ -104,7 +104,7 @@
                         <td>&nbsp;</td>
                         {% endif %}
                         <td>{{ row.phone }}</td>
-                        <td><a href="{{ url_for('sendonesms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
+                        <td><a href="{{ url_for('sendfawasms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
                     </tr>
                 {% endfor %}
                 </tbody>

@@ -1,4 +1,4 @@
-from flask import Flask, url_for, render_template, request, session, g, redirect
+from flask import Flask, url_for, render_template, request, session, g, redirect, send_file
 from database import get_db, hashpass, onetime, otp_ontime, log
 from datetime import datetime
 from sendEmail import send_otp_email
@@ -185,7 +185,6 @@ def home():
     # user is logged in, now just send a stub page.
     return render_template('home.html')
 
-
 @app.route('/fawastatements', methods=['GET', 'POST'])
 def fawastatements():
     # check if logged in, then continue.
@@ -281,6 +280,87 @@ def sendallsms(sid):
         smscount += 1
 
     return render_template('smsresult.html', sid=sid, message=f"{smscount} messages sent")
+
+# send an individual FAWA sms
+@app.route('/sendfawasms/<uid>', methods=['GET', 'POST'])
+def sendfawasms(uid):
+    # check if logged in, then continue.
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select id, statementid, memberno, membername, totaldeposit, monthlydeposit, totalloan_principal, totalloanpaid,
+        outstandingloan, loanrepayment, guaranteed, phone
+        from fawastatement
+        where id = ?
+    '''
+    cur.execute(sql, [uid])
+    data = cur.fetchone()
+    if data is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    statementid = data['statementid']
+    sql = 'select id, statementday, statementmonth, statementyear, processed from fawaheader where id = ?'
+    cur.execute(sql, [statementid])
+    data2 = cur.fetchone()
+    if data2 is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+    statementdate = buildDateString(data2['statementday'], data2['statementmonth'], data2['statementyear'])
+    # -------- BUILD THE SMS 
+    sms = 'FAWA Statement\n'
+    sms += f'Statement Date: {statementdate}\n'
+    sms += f"Full Name: {data['membername']}\n"
+    sms += "Total Deposit: {:,.2f}\n".format(float(data['totaldeposit']))
+    sms += "Monthly Deposit: {:,.2f}\n".format(float(data['monthlydeposit']))
+    if data['totalloan_principal'] is not None:
+        if float(data['totalloan_principal']) > 0:
+            sms += "Total Loan: {:,.2f}\n".format(float(data['totalloan_principal']))
+        if data['outstandingloan'] is not None:
+            if float(data['outstandingloan']) > 0:
+                sms += "Outstanding Loan: {:,.2f}\n".format(float(data['outstandingloan']))
+        if data['loanrepayment'] is not None:
+            if float(data['loanrepayment']) > 0:
+                sms += "Monthly Repayment: {:,.2f}\n".format(float(data['loanrepayment']))
+    if data['guaranteed'] is not None:
+        if float(data['guaranteed']) > 0:
+            sms += "Amount Guaranteed to others: {:,.2f}\n".format(float(data['guaranteed']))
+    sms += f"Phone: {data['phone']}\n"
+    sms += "Thank you for saving with FAWA"
+    # -------- END OF SMS BUILD
+
+    smsdate = datetime.now()
+    sql = 'insert into smslog (smsdate, statementid, memberno, phone, sms) values (?, ?, ?, ?, ?)'
+    cur.execute(sql, [smsdate, statementid, data['memberno'], data['phone'], sms])
+    db.commit()
+    lastinsertid = cur.lastrowid
+    # now send the SMS.
+    smsrecipient = data['phone']
+    smsresult = sendSMS(sms, [smsrecipient])
+    # smsresult = sendSMS(sms, ['254759614127'])
+    sql = 'update smslog set smsresult = ? where id = ?'
+    cur.execute(sql, [smsresult, lastinsertid])
+    db.commit()
+
+    # display a page with the result of this SMS send.
+    message = smsresult
+    return render_template('fawasmsresult.html', message=message, sms=sms)
 
 @app.route('/payroll', methods=['GET', 'POST'])
 def payroll():
@@ -408,6 +488,62 @@ def upload():
     # not in post mode - show the upload form
     return render_template('upload.html', message=message)
 
+@app.route('/fawafiledownload/<fid>', methods=['GET', 'POST'])
+def fawafiledownload(fid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select filename from uploads where id = ?'
+    cur.execute(sql, [fid])
+    data = cur.fetchone()
+    if data is None:
+        return redirect(url_for('managefiles'))
+    
+    filename = os.path.join(app.config['UPLOAD_FOLDER'], data['filename'])
+    return send_file(filename, as_attachment=True)
+
+@app.route('/fawafiledelete/<fid>', methods=['GET', 'POST'])
+def fawafiledelete(fid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select filename from uploads where id = ?'
+    cur.execute(sql, [fid])
+    data = cur.fetchone()
+    if data is None:
+        return redirect(url_for('managefiles'))
+    
+    filename = os.path.join(app.config['UPLOAD_FOLDER'], data['filename'])
+    if os.path.exists(filename):
+        os.remove(filename)
+        sql = 'delete from uploads where id = ?'
+        cur.execute(sql, [fid])
+        db.commit()
+
+    return redirect(url_for('managefiles'))
+
 @app.route('/checkstatements', methods=['GET', 'POST'])
 def checkstatements():
     if 'user' not in session or not session['user']['otp']:
@@ -425,7 +561,12 @@ def checkstatements():
     # show table of all statements in the database.
     db = get_db()
     cur = db.cursor()
-    sql = 'select id, fileid, statementday, statementmonth, statementyear, processed from fawaheader'
+    sql = '''
+        select h.id, h.fileid, h.statementday, h.statementmonth, h.statementyear, h.processed,
+        count(f.id) as rcount from fawaheader h left join fawastatement f
+        on (h.id = f.statementid) group by h.id, h.fileid, h.statementday, h.statementmonth,
+        h.statementyear, h.processed
+    '''
     cur.execute(sql)    
     data = cur.fetchall()
     statements = []
@@ -433,11 +574,15 @@ def checkstatements():
         statements.append({
             'id': row['id'],
             'fileid': row['fileid'],
+            'recordcount': row['rcount'],
             'statementdate': buildDateString(row['statementday'], row['statementmonth'], row['statementyear']),
             'processed': row['processed']
         })
     return render_template('checkstatements.html', statements=statements)
 
+# manage uploaded FAWA statement files.
+# can delete or download a file. Downloading will allow the user to make some changes
+# and then upload it again.
 @app.route('/managefiles', methods=['GET', 'POST'])
 def managefiles():
     if 'user' not in session or not session['user']['otp']:
@@ -452,8 +597,15 @@ def managefiles():
         else:
             return redirect(url_for('home'))
 
-    # user is logged in, now just send a stub page.
-    return render_template('under_construction.html', page='Manage Files')
+    # table = uploads.
+    # fields id (pk unique), filename (varchar(256))
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select id, filename from uploads'
+    cur.execute(sql)
+    data = cur.fetchall()
+
+    return render_template('fawafiles.html', files=data)
 
 # send a single SMS statement - this will present a form.
 @app.route('/sendonesms', methods=['GET', 'POST'])
@@ -488,7 +640,6 @@ def sendhrsms(uid):
             return redirect(url_for('home'))
 
     return render_template('under_construction.html', page="Send HR SMS")
-
 
 # generic form for sending an SMS
 @app.route('/sendgenericsms', methods=['GET', 'POST'])
@@ -586,6 +737,57 @@ def reviewstatements(sid):
         return redirect(request.referrer)
     
     return render_template('reviewstatements.html', header=header, statements=data)
+
+# review a single FAWA statement detail.
+# uid = unique statement data in fawastatement table.
+@app.route('/reviewonefawastatement/<uid>', methods=['GET', 'POST'])
+def reviewonefawastatement(uid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and fawa=3 should use this page.
+    auth = (1, 3)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select id, statementid, memberno, membername, totaldeposit, monthlydeposit, totalloan_principal,
+        totalloanpaid, outstandingloan, loanrepayment, guaranteed, loanroom_noguarantee, loanroom_guarantee,
+        phone from fawastatement where id = ?
+    '''
+    cur.execute(sql, [uid])
+    data = cur.fetchone()
+    if data is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+        
+    # get statement date information.
+    statementid = data['statementid']
+    sql = 'select id, statementday, statementmonth, statementyear, processed from fawaheader where id = ?'
+    cur.execute(sql, [statementid])
+    data2 = cur.fetchone()
+    if data2 is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    statementdate = buildDateString(data2['statementday'], data2['statementmonth'], data2['statementyear'])
+    header = {
+        'id': data2['id'],
+        'statementdate': statementdate,
+        'processed': data2['processed']
+    }
+
+    return render_template('fawastatementdetail.html', header=header, statement=data)        
 
 # md = message date (date that the SMS was sent)
 @app.route('/showsmslogbyid/<sid>', methods=['GET', 'POST'])
@@ -741,7 +943,6 @@ def edituser(uid):
     auth = tuple([int(x) for x in result['auth']])
     return render_template('edituser.html', contact=result, auth=auth)
 
-
 @app.route('/deluser/<uid>')
 def deluser(uid):
     if 'user' not in session or not session['user']['otp']:
@@ -772,7 +973,6 @@ def deluser(uid):
 
     return redirect(url_for('staff'))
 
-
 @app.route('/paystatements', methods=['GET', 'POST'])
 def paystatements():
     if 'user' not in session or not session['user']['otp']:
@@ -791,8 +991,12 @@ def paystatements():
     db = get_db()
     cur = db.cursor()
     sql = '''
-        select p.payid, c.company, p.paymonth, p.payyear, p.processed from payrollheader p
-        join company c on (p.companyid = c.id) order by p.payid desc
+        select p.payid, c.company, p.paymonth, p.payyear, p.processed, count(d.id) as recordcount
+        from payrollheader p
+        join company c on (p.companyid = c.id) 
+        join payroll d on (p.payid = d.payrollid)
+        group by p.payid, c.company, p.paymonth, p.payyear, p.processed
+        order by p.payid desc
     '''
     cur.execute(sql)    
     data = cur.fetchall()
@@ -801,6 +1005,7 @@ def paystatements():
         payrolls.append({
             'payid': row['payid'],
             'company': row['company'],
+            'recordcount': row['recordcount'],
             'payrolldate': buildPayrollDate(int(row['paymonth']), int(row['payyear'])),
             'processed': row['processed']
         })
@@ -851,6 +1056,47 @@ def reviewpayroll(pid):
         return redirect(request.referrer)
     
     return render_template('reviewpayroll.html', header=header, payroll=data)
+
+@app.route('/reviewonepayrollstatement/<uid>', methods=['GET', 'POST'])
+def reviewonepayrollstatement(uid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select id, payrollid, paymonth, payyear, company, employeeno, fullname, phone, nationalid,
+        krapin, jobdescription, grosspay, houseallowance, otherpay, overtime, benefits, nssf, 
+        taxableincome, nhif, paye, housinglevy, fawaloan, payadvance, absent, fawacontribution, 
+        housingbenefit, otherdeductions, netpay from payroll where id = ?
+    '''
+    cur.execute(sql, [uid])
+    data = cur.fetchone()
+    if data is None:
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    # header
+    payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
+    header = {
+        'id': data['payrollid'],
+        'company': data['company'],
+        'payrolldate': payrolldate
+    }
+
+    return render_template('reviewpayrolldetail.html', header=header, payroll=data)
+    
 
 @app.route('/sendpaystubsms/<pid>', methods=['GET', 'POST'])
 def sendpaystubsms(pid):
@@ -993,7 +1239,7 @@ def showpaysmslogbyid(pid):
     '''
     cur.execute(sql, [pid])
     data = cur.fetchall()
-    if data is None:
+    if len(data) == 0:
         if request.referrer:
             return redirect(request.referrer)
         else:
@@ -1001,3 +1247,165 @@ def showpaysmslogbyid(pid):
 
 
     return render_template('paysmslog.html', log=data, company=company, payrolldate=payrolldate)
+
+@app.route('/payfiles', methods=['GET', 'POST'])
+def payfiles():
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select id, filename from payuploads'
+    cur.execute(sql)
+    data = cur.fetchall()
+
+    return render_template('payfiles.html', files=data)
+
+@app.route('/payrollfiledownload/<pid>', methods=['GET', 'POST'])
+def payrollfiledownload(pid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select filename from payuploads where id = ?'
+    cur.execute(sql, [pid])
+    data = cur.fetchone()
+    if data is None:
+        return redirect(url_for('payfiles'))
+    
+    filename = data['filename']
+    log(f"pay file = {filename}")
+    if os.path.exists(filename):
+        return send_file(filename, as_attachment=True)
+
+    return redirect(url_for('payfiles'))
+
+@app.route('/payrollfiledelete/<pid>', methods=['GET', 'POST'])
+def payrollfiledelete(pid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = 'select filename from payuploads where id = ?'
+    cur.execute(sql, [pid])
+    data = cur.fetchone()
+    if data is None:
+        return redirect(url_for('payfiles'))
+    
+    filename = data['filename']
+    if os.path.exists(filename):
+        os.remove(filename)
+        sql = 'delete from payuploads where id = ?'
+        cur.execute(sql, [pid])
+        db.commit()
+
+    return redirect(url_for('payfiles'))
+
+@app.route('/sendonepayrollsms/<uid>', methods=['GET', 'POST'])
+def sendonepayrollsms(uid):
+    if 'user' not in session or not session['user']['otp']:
+        return redirect(url_for('login'))
+
+    user = session['user']
+    # only admin=1 and payroll=5 should use this page.
+    auth = (1, 5)
+    if not hasauth(list(user['auth']), auth):
+        if request.referrer:
+            return redirect(request.referrer)
+        else:
+            return redirect(url_for('home'))
+
+    db = get_db()
+    cur = db.cursor()
+    sql = '''
+        select id, payrollid, paymonth, payyear, company, employeeno, fullname, phone,
+        nationalid, krapin, jobdescription, grosspay, houseallowance, otherpay, overtime,
+        benefits, nssf, taxableincome, nhif, paye1, paye2, paye3, paye, housinglevy, 
+        fawaloan, payadvance, absent, fawacontribution, housingbenefit, otherdeductions,
+        netpay from payroll where id = ?
+    '''
+    cur.execute(sql, [uid])
+    data = cur.fetchone()
+    smsdate = datetime.now()
+
+    payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
+
+    slip = {
+        'id': data['id'],
+        'payrollid': data['payrollid'],
+        'paymonth': data['paymonth'],
+        'payyear': data['payyear'],
+        'company': data['company'],
+        'employeeno': data['employeeno'],
+        'fullname': data['fullname'],
+        'phone': data['phone'],
+        'nationalid': data['nationalid'],
+        'krapin': data['krapin'],
+        'jobdescription': data['jobdescription'],
+        'grosspay': data['grosspay'],
+        'houseallowance': data['houseallowance'],
+        'otherpay': data['otherpay'],
+        'overtime': data['overtime'],
+        'benefits': data['benefits'],
+        'nssf': data['nssf'],
+        'taxableincome': data['taxableincome'],
+        'nhif': data['nhif'],
+        'paye1': data['paye1'],
+        'paye2': data['paye2'],
+        'paye3': data['paye3'],
+        'paye': data['paye'],
+        'housinglevy': data['housinglevy'],
+        'fawaloan': data['fawaloan'],
+        'payadvance': data['payadvance'],
+        'absent': data['absent'],
+        'fawacontribution': data['fawacontribution'],
+        'housingbenefit': data['housingbenefit'],
+        'otherdeductions': data['otherdeductions'],
+        'netpay': data['netpay']
+    }
+    sms_string = printSlip(slip, payrolldate)
+    sql = '''
+        insert into paysmslog (smsdate, payrollid, employeeno, phone, sms)
+        values (?, ?, ?, ?, ?)
+    '''
+    cur.execute(sql, [smsdate, data['payrollid'], data['employeeno'], data['phone'], sms_string])
+    db.commit()
+    lastinsertid = cur.lastrowid
+    smsrecipient = data['phone']
+    smsresult = sendSMS(sms_string, [smsrecipient])
+    sql = 'update paysmslog set smsresult = ? where id = ?'
+    cur.execute(sql, [smsresult, lastinsertid])
+    db.commit()
+
+    # display a page with the result of this SMS send.
+    message = smsresult
+    return render_template('payrollsmsresult.html', message=message, sms=sms_string)

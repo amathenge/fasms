@@ -68,7 +68,7 @@
                     <tr class="small">
                         <td scope="row">{{ row.id }}</td>
                         <td>{{ row.employeeno }}</td>
-                        <td>{{ row.fullname }}</td>
+                        <td><a href="{{ url_for('reviewonepayrollstatement', uid=row.id ) }}">{{ row.fullname }}</a></td>
                         <td>{{ row.nationalid }}</td>
                         <td>{{ row.grosspay }}</td>
                         <td>{{ row.nssf }}</td>
@@ -91,7 +91,7 @@
                         {% endif %}
                         <td>{{ row.netpay }}</td>
                         <td>{{ row.phone }}</td>
-                        <td><a href="{{ url_for('sendonesms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
+                        <td><a href="{{ url_for('sendonepayrollsms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
                     </tr>
                 {% endfor %}
                 </tbody>

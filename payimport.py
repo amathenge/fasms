@@ -370,8 +370,10 @@ def fullmonth(m):
         return 'March'
     elif m == 'APR':
         return 'April'
+    elif m == 'MAY':
+        return 'May'
     elif m == 'JUN':
-        return 'JUne'
+        return 'June'
     elif m == 'JUL':
         return 'July'
     elif m == 'AUG':
