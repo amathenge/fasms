@@ -6,7 +6,7 @@
 {% endblock %}
 {% block title %}&nbsp;{% endblock %}
 
-{% block heading %}FAWA - Uploaded files{% endblock %}
+{% block heading %}Payroll - Uploaded files{% endblock %}
 
 {% block content %}
 
@@ -19,7 +19,7 @@
 </div>
 <div class="row">
     <div class="col-12">
-        <p class="fs-4 text-center">FAWA Statement File List</p>
+        <p class="fs-4 text-center">Payroll File List</p>
     </div>
 </div>
 <div class="row my-5">
@@ -33,19 +33,16 @@
             {% for row in files %}
             <tr class="border-bottom">
                 <td scope="row">
-                    <a href="{{ url_for('fawafiledelete', fid=row.id) }}"><i class="fas fa-trash"></i></a>
+                    <a href="{{ url_for('payrollfiledelete', pid=row.id) }}"><i class="fas fa-trash"></i></a>
                     &nbsp;|&nbsp;
-                    <a href="{{ url_for('fawafiledownload', fid=row.id) }}"><i class="far fa-arrow-alt-circle-down"></i></a>
+                    <a href="{{ url_for('payrollfiledownload', pid=row.id) }}"><i class="far fa-arrow-alt-circle-down"></i></a>
                 </td>
                 <td>{{ row.id }}</td>
                 <td>{{ row.filename }}</td>
             </tr>
             {% endfor %}
         </table>
-    {% if not files %}
-        <p>No files</p>        
-    {% endif %}
-</div>
+    </div>
 </div>
 
 {% endblock %}

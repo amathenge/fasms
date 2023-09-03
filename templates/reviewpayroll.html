@@ -91,7 +91,7 @@
                         {% endif %}
                         <td>{{ row.netpay }}</td>
                         <td>{{ row.phone }}</td>
-                        <td><a href="{{ url_for('sendonesms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
+                        <td><a href="{{ url_for('sendonepayrollsms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
                     </tr>
                 {% endfor %}
                 </tbody>
