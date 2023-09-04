@@ -63,9 +63,12 @@ def fixNumber(num):
         return None
     
     if isinstance(num, (float, int)):
-        num = str(num)
-        
-    num = num.strip()
+        if num == 0:
+            return None
+        else:
+            num = str(num)
+            num = num.strip()
+    
     return "{:.2f}".format(float(num))
 
 def getSlip(company,row):

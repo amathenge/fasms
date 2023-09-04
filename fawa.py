@@ -69,7 +69,7 @@ def get_member(row):
         'memberno': memberno,
         'membername': sheet.cell(row, 2).value,
         'totaldeposit': sheet.cell(row, 3).value,
-        'monthlydeposit': sheet.cell(row, 4).value,
+        'monthlydeposit': nullify(sheet.cell(row, 4).value),
         'totalloan_principal': nullify(sheet.cell(row, 5).value),
         'totalloanpaid': nullify(sheet.cell(row, 6).value),
         'outstandingloan': nullify(sheet.cell(row, 7).value),
