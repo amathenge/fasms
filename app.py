@@ -566,6 +566,7 @@ def checkstatements():
         count(f.id) as rcount from fawaheader h left join fawastatement f
         on (h.id = f.statementid) group by h.id, h.fileid, h.statementday, h.statementmonth,
         h.statementyear, h.processed
+        order by h.id desc
     '''
     cur.execute(sql)    
     data = cur.fetchall()
