@@ -29,13 +29,13 @@
         </div>
         {% if header.processed == 0 %}
         <div class="col-6 d-flex justify-content-end">
-            <form action="{{ url_for('sendallsms', sid=header.id) }}" method="POST">
+            <form action="{{ url_for('fawa.sendallsms', sid=header.id) }}" method="POST">
                 <button class="btn btn-primary d-grid" type="submit">Send All SMS</button>
             </form>
         </div>        
         {% else %}
         <div class="col-6 d-flex justify-content-end">
-            <form action="{{ url_for('showsmslogbyid', sid=header.id) }}" method="POST">
+            <form action="{{ url_for('fawa.showsmslogbyid', sid=header.id) }}" method="POST">
                 <button class="btn btn-primary d-grid" type="submit">Show SMS Log</button>
             </form>
         </div>        
@@ -65,9 +65,13 @@
                 {% for row in statements %}
                     <tr class="small">
                         <td scope="row">{{ row.memberno }}</td>
-                        <td><a href="{{ url_for('reviewonefawastatement', uid=row.id) }}">{{ row.membername}}</a></td>
+                        <td><a href="{{ url_for('fawa.reviewonefawastatement', uid=row.id) }}">{{ row.membername}}</a></td>
                         <td>{{ row.totaldeposit }}</td>
+                        {% if row.monthlydeposit is not none %}
                         <td>{{ row.monthlydeposit }}</td>
+                        {% else %}
+                        <td>&nbsp;</td>
+                        {% endif %}
                         {% if row.totalloan_principal %}
                         <td>{{ row.totalloan_principal }}</td>
                         {% else %}
@@ -104,7 +108,7 @@
                         <td>&nbsp;</td>
                         {% endif %}
                         <td>{{ row.phone }}</td>
-                        <td><a href="{{ url_for('sendfawasms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
+                        <td><a href="{{ url_for('fawa.sendfawasms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
                     </tr>
                 {% endfor %}
                 </tbody>

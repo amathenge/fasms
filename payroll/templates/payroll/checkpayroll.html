@@ -3,7 +3,7 @@
 
 {% block title %}&nbsp;{% endblock %}
 
-{% block heading %}Check FAWA Statements{% endblock %}
+{% block heading %}Check Payroll Paystubs{% endblock %}
 
 {% block content %}
 
@@ -20,16 +20,16 @@
             <table class="table table-striped">
                 <tr>
                     <th scope="col">ID</th>
-                    <th scope="col">File ID</th>
-                    <th scope="col">Statement Date</th>
-                    <th scope="col">Total Records</th>
+                    <th scope="col">Company</th>
+                    <th scope="col">Payroll Date</th>
+                    <th scope="col">Record Count</th>
                     <th scope="col">Processed</th>
                 </tr>
-                {% for row in statements %}
+                {% for row in payrolls %}
                 <tr>
-                    <td><a href='{{ url_for("reviewstatements", sid=row.id) }}'>{{ row.id }}</a></td>
-                    <td>{{ row.fileid }}</td>
-                    <td>{{ row.statementdate }}</td>
+                    <td><a href='{{ url_for("payroll.reviewpayroll", pid=row.payid) }}'>{{ row.payid }}</a></td>
+                    <td>{{ row.company }}</td>
+                    <td>{{ row.payrolldate }}</td>
                     <td>{{ row.recordcount }}</td>
                     {% if row.processed == 0 %}
                     <td>N</td>

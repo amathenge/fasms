@@ -23,21 +23,6 @@
             <span class="fs-6"><b>{{ header.company }}</b>&nbsp;-&nbsp;</span>
             <span class="fs-6">Payroll Date: {{ header.payrolldate }}</span>
         </div>
-        <!-- 
-        {% if header.processed == 0 %}
-        <div class="col-6 d-flex justify-content-end">
-            <form action="{{ url_for('sendpaystubsms', pid=header.id) }}" method="POST">
-                <button class="btn btn-primary d-grid" type="submit">Send All Paystubs</button>
-            </form>
-        </div>        
-        {% else %}
-        <div class="col-6 d-flex justify-content-end">
-            <form action="{{ url_for('showpaysmslogbyid', pid=header.id) }}" method="POST">
-                <button class="btn btn-primary d-grid" type="submit">Show Paystub Log</button>
-            </form>
-        </div>        
-        {% endif %}
-        -->
     </div>
     <div class="row justify-content-center">
         <div class="col-12">

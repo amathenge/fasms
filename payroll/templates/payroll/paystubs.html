@@ -3,7 +3,7 @@
 
 {% block title %}&nbsp;{% endblock %}
 
-{% block heading %}FAWA Statements{% endblock %}
+{% block heading %}Pay Statements{% endblock %}
 
 {% block content %}
 
@@ -24,27 +24,27 @@
     {% endif %}
     <div class="row my-2 justify-content-center">
         <div class="col-6 my-2">
-            <form action="/upload" method="POST">
+            <form action="{{ url_for('payroll.payupload') }}" method="POST">
                 <div class="form-group d-grid my-2 text-center">
-                    <button class="btn btn-primary d-grid" type="submit" name="callform" id="callform">Upload FAWA Statement file</button>
+                    <button class="btn btn-primary d-grid" type="submit" name="callpayform" id="callpayform">Upload Payroll file</button>
                 </div>
             </form>
         </div>
     </div>
     <div class="row my-2 justify-content-center">
         <div class="col-6 my-2">
-            <form action="/checkstatements" method="POST">
+            <form action="{{ url_for('payroll.paystatements') }}" method="POST">
                 <div class="form-group d-grid my-2 text-center">
-                    <button class="btn btn-primary d-grid" type="submit" name="checkstatements" id="checkstatements">Check FAWA Statement data</button>
+                    <button class="btn btn-primary d-grid" type="submit" name="checkpay" id="checkpay">Check Payroll data</button>
                 </div>
             </form>
         </div>
     </div>
     <div class="row my-2 justify-content-center">
         <div class="col-6 my-2">
-            <form action="/managefiles" method="POST">
+            <form action="{{ url_for('payroll.payfiles') }}" method="POST">
                 <div class="form-group d-grid my-2 text-center">
-                    <button class="btn btn-primary d-grid" type="submit" name="managefiles" id="managefiles">Manage Uploaded FAWA Statement files</button>
+                    <button class="btn btn-primary d-grid" type="submit" name="managepayfiles" id="managepayfiles">Manage Uploaded Payroll files</button>
                 </div>
             </form>
         </div>

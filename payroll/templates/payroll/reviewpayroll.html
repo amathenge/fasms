@@ -30,13 +30,13 @@
         </div>
         {% if header.processed == 0 %}
         <div class="col-6 d-flex justify-content-end">
-            <form action="{{ url_for('sendpaystubsms', pid=header.id) }}" method="POST">
+            <form action="{{ url_for('payroll.sendpaystubsms', pid=header.id) }}" method="POST">
                 <button class="btn btn-primary d-grid" type="submit">Send All Paystubs</button>
             </form>
         </div>        
         {% else %}
         <div class="col-6 d-flex justify-content-end">
-            <form action="{{ url_for('showpaysmslogbyid', pid=header.id) }}" method="POST">
+            <form action="{{ url_for('payroll.showpaysmslogbyid', pid=header.id) }}" method="POST">
                 <button class="btn btn-primary d-grid" type="submit">Show Paystub Log</button>
             </form>
         </div>        
@@ -68,7 +68,7 @@
                     <tr class="small">
                         <td scope="row">{{ row.id }}</td>
                         <td>{{ row.employeeno }}</td>
-                        <td><a href="{{ url_for('reviewonepayrollstatement', uid=row.id ) }}">{{ row.fullname }}</a></td>
+                        <td><a href="{{ url_for('payroll.reviewonepayrollstatement', uid=row.id ) }}">{{ row.fullname }}</a></td>
                         <td>{{ row.nationalid }}</td>
                         <td>{{ row.grosspay }}</td>
                         <td>{{ row.nssf }}</td>
@@ -91,7 +91,7 @@
                         {% endif %}
                         <td>{{ row.netpay }}</td>
                         <td>{{ row.phone }}</td>
-                        <td><a href="{{ url_for('sendonepayrollsms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
+                        <td><a href="{{ url_for('payroll.sendonepayrollsms', uid=row.id) }}"><i class="fas fa-sms"></i></a></td>
                     </tr>
                 {% endfor %}
                 </tbody>
