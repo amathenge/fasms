@@ -35,6 +35,10 @@ def close_db(error):
     if hasattr(g, 'fawa_db'):
         g.fawa_db.close()
 
+# this route redirects to the auth login route.
+@app.route('/', methods=['GET', 'POST'])
+def auth_login():
+    return redirect(url_for('auth.login'))
 
 @app.route('/home', methods=['GET', 'POST'])
 def home():
