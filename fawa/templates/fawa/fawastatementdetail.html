@@ -11,9 +11,9 @@
 {% block content %}
 
 {% set user = session['user'] %}
-<!--
+{#
     SHOW SINGLE FAWA STATEMENT DETAIL. ALL FIELDS.
--->
+#}
 <div class="row">
     <div class="col-12">
         {{ nav(user) }}
@@ -28,28 +28,29 @@
         <span>&nbsp;<small>[Processed]</small></span>
         {% endif %}
     </div>
-    <!-- MAY WANT TO PUT A BUTTON TO ALLOW SENDING THIS SMS.
+    {#
+    MAY WANT TO PUT A BUTTON TO ALLOW SENDING THIS SMS.
     {% if header.processed == 0 %}
     <div class="col-6 d-flex justify-content-end">
-        <form action="{{ url_for('sendallsms', sid=header.id) }}" method="POST">
+        <form action="{{ url_for('fawa.sendallsms', sid=header.id) }}" method="POST">
             <button class="btn btn-primary d-grid" type="submit">Send All SMS</button>
         </form>
     </div>        
     {% else %}
     <div class="col-6 d-flex justify-content-end">
-        <form action="{{ url_for('showsmslogbyid', sid=header.id) }}" method="POST">
+        <form action="{{ url_for('fawa.showsmslogbyid', sid=header.id) }}" method="POST">
             <button class="btn btn-primary d-grid" type="submit">Show SMS Log</button>
         </form>
     </div>        
     {% endif %}
-    -->
+    #}
 </div>
 <div class="row justify-content-center">
     <div class="col-12">
         <table class="table table-sm table-bordered small">
             <tbody>
                 <tr>
-                    <!-- memberno, name and phone number -->
+                    {# memberno, name and phone number #}
                     <td>
                         {{ databox('memberno', 'Member No', statement.memberno) }}
                     </td>
@@ -61,7 +62,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <!-- total deposit, monthly deposit -->
+                    {# total deposit, monthly deposit #}
                     <td>
                         {{ databox('totaldeposit', 'FAWA Account Balance', statement.totaldeposit) }}
                     </td>
@@ -70,7 +71,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <!-- Loan data = principal, paid, outstanding, repayment -->
+                    {# Loan data = principal, paid, outstanding, repayment #}
                     <td>
                         {{ databox('totalloan_principal', 'FAWA Loan Principal Amount', statement.totalloan_principal) }}
                     </td>
@@ -85,7 +86,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <!-- guarantee info -->
+                    {# guarantee info #}
                     <td>
                         {{ databox('guaranteed', 'Guaranteed Amount', statement.guaranteed) }}
                     </td>

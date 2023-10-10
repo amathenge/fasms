@@ -17,7 +17,7 @@
     </div>
     <div class="row justify-content-center">
         <div class="col-6">
-            {{ file_upload('/upload', 'Upload FAWA Statement File') }}
+            {{ file_upload(url_for('fawa.upload'), 'Upload FAWA Statement File') }}
         </div>
     </div>
     {% if message %}

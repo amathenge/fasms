@@ -231,6 +231,7 @@ def importdata(fileid, filename):
         header = get_header(fileid, each_sheet)
         # if header is None - this sheet is already loaded.
         if header is None:
+            log(f'Not loading {sheet} - previously processed')
             continue
         # start at row=1 and go to about 100.
         # if col=1 has an integer, then this is a member
@@ -292,35 +293,16 @@ def buildDateString(d, m, y):
 
     return s
 
-def buildPayrollDate(m, y):
-    s = ''
-    if m == 1:
-        s += 'January '
-    elif m == 2:
-        s += 'February '
-    elif m == 3:
-        s += 'March '
-    elif m == 4:
-        s += 'April '
-    elif m == 5:
-        s += 'May '
-    elif m == 6:
-        s += 'June '
-    elif m == 7:
-        s += 'July '
-    elif m == 8:
-        s += 'August '
-    elif m == 9:
-        s += 'September '
-    elif m == 10:
-        s += 'October '
-    elif m == 11:
-        s += 'November '
-    elif m == 12:
-        s += 'December '
-    else:
-        s += 'UNKNOWN '
-
-    s += str(y)
-
-    return s
+def hasauth(item, check):
+    # "item" and "check" are lists. The correct authorization categories are in "check"
+    # if an item in "item" corresponds to an item in "check" then return True
+    # example item=(3,4) and check=(2,4) --> return True
+    # example item=(2,4,5) and check=(3,6) --> return False
+    # example item=(1,) and check=(2,3) --> return True (because 1=admin)
+    if 1 in item:
+        return True
+    auth = False
+    for element in item:
+        if element in check:
+            auth = True
+    return auth

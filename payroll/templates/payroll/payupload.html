@@ -17,7 +17,7 @@
     </div>
     <div class="row justify-content-center">
         <div class="col-6">
-            {{ file_upload('/payupload', 'Upload Payroll File') }}
+            {{ file_upload(url_for('payroll.payupload'), 'Upload Payroll File') }}
         </div>
     </div>
     {% if message %}

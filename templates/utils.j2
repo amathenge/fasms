@@ -7,7 +7,7 @@
     <div class="navbar-nav">
     <a class="nav-item nav-link text-primary" href="{{ url_for('home') }}">Home</a>
     {% if user.auth|isadmin or user.auth|isfawa %}
-    <a class="nav-item nav-link text-primary" href="{{ url_for('fawastatements') }}">FAWA Statements</a>
+    <a class="nav-item nav-link text-primary" href="{{ url_for('fawa.fawastatements') }}">FAWA Statements</a>
     {% endif %}
     {% if user.auth|isadmin or user.auth|issms %}
     <li class="nav-item dropdown">
@@ -15,8 +15,8 @@
             Send SMS
         </a>
         <ul class="dropdown-menu" aria-labelledby="navbarDarkDropdownMenuLink">
-            <li><a class="nav-item nav-link text-primary" href="{{ url_for('sendgenericsms') }}">General SMS</a></li>
-            <li><a class="nav-item nav-link text-primary" href="{{ url_for('sendonesms') }}">Staff HR SMS</a></li>
+            <li><a class="nav-item nav-link text-primary" href="{{ url_for('fawa.sendgenericsms') }}">General SMS</a></li>
+            <li><a class="nav-item nav-link text-primary" href="{{ url_for('fawa.sendonesms') }}">Staff HR SMS</a></li>
         </ul>
     </li>    
     {% endif %}
@@ -28,9 +28,9 @@
     <a class="nav-item nav-link text-primary" href="{{ url_for('usermgmt') }}">User Management</a>
     {% endif %}
     {% if user.auth|isadmin or user.auth|ispayroll %}
-    <a class="nav-item nav-link text-primary" href="{{ url_for('payroll') }}">Staff Payslips</a>
+    <a class="nav-item nav-link text-primary" href="{{ url_for('payroll.payslips') }}">Staff Payslips</a>
     {% endif %}
-    <a class="nav-item nav-link text-primary" href="{{ url_for('logout') }}">LOGOUT</a>
+    <a class="nav-item nav-link text-primary" href="{{ url_for('auth.logout') }}">LOGOUT</a>
 </div>
 </nav>
 {%- endmacro %}
