@@ -7,7 +7,7 @@ CREATE TABLE users (
     firstname varchar(32) not null, 
     lastname varchar(32) not null,
     email varchar(128) not null,
-    password varchar(32) not null,
+    password varchar(256) not null,
     phone varchar(32) not null,
     auth varchar(8) not null default '6',
     passauth boolean not null default 1,    -- should we use password auth?
