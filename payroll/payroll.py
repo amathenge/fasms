@@ -29,7 +29,7 @@ def payslips():
     # check if logged in, then continue.
     if 'user' not in session or not session['user']['otp']:
         return redirect(url_for('auth.login'))
-    
+
     # user is logged in - show payroll management options.
     return render_template('payroll/paystubs.html')
 
@@ -49,7 +49,7 @@ def payupload():
             return redirect(url_for('home'))
     if 'callform' in request.form:
         return render_template('payroll/payupload.html', message=None)
-    
+
     message = None
     if request.method == "POST":
         # get the file
@@ -84,7 +84,7 @@ def payupload():
                 # file has already been uploaded.
                 message = f"File <b><u>{data['filename']}</u></b> exists - uploaded previously."
     # not in post mode - show the upload form
-    return render_template('payroll/payupload.html', message=message)   
+    return render_template('payroll/payupload.html', message=message)
 
 @payroll.route('/paystatements', methods=['GET', 'POST'])
 def paystatements():
@@ -106,12 +106,12 @@ def paystatements():
     sql = '''
         select p.payid, c.company, p.paymonth, p.payyear, p.processed, count(d.id) as recordcount
         from payrollheader p
-        join company c on (p.companyid = c.id) 
+        join company c on (p.companyid = c.id)
         join payroll d on (p.payid = d.payrollid)
         group by p.payid, c.company, p.paymonth, p.payyear, p.processed
         order by p.payid desc
     '''
-    cur.execute(sql)    
+    cur.execute(sql)
     data = cur.fetchall()
     payrolls = []
     for row in data:
@@ -142,14 +142,14 @@ def reviewpayroll(pid):
     cur = db.cursor()
     sql = '''
         select p.payid, c.company, p.paymonth, p.payyear, p.processed from payrollheader p
-        join company c on (c.id = p.companyid) 
+        join company c on (c.id = p.companyid)
         where p.payid = ?
     '''
     cur.execute(sql, [pid])
     data = cur.fetchone()
     if data is None:
         return redirect(request.referrer)
-    
+
     payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
     header = {
         'id': data['payid'],
@@ -167,7 +167,7 @@ def reviewpayroll(pid):
     data = cur.fetchall()
     if data is None:
         return redirect(request.referrer)
-    
+
     return render_template('payroll/reviewpayroll.html', header=header, payroll=data)
 
 @payroll.route('/reviewonepayrollstatement/<uid>', methods=['GET', 'POST'])
@@ -188,8 +188,8 @@ def reviewonepayrollstatement(uid):
     cur = db.cursor()
     sql = '''
         select id, payrollid, paymonth, payyear, company, employeeno, fullname, phone, nationalid,
-        krapin, jobdescription, grosspay, houseallowance, otherpay, overtime, benefits, nssf, 
-        taxableincome, nhif, paye, housinglevy, fawaloan, payadvance, absent, fawacontribution, 
+        krapin, jobdescription, grosspay, houseallowance, otherpay, overtime, benefits, nssf,
+        taxableincome, nhif, paye, housinglevy, fawaloan, payadvance, absent, fawacontribution,
         housingbenefit, otherdeductions, netpay from payroll where id = ?
     '''
     cur.execute(sql, [uid])
@@ -209,7 +209,7 @@ def reviewonepayrollstatement(uid):
     }
 
     return render_template('payroll/reviewpayrolldetail.html', header=header, payroll=data)
-    
+
 @payroll.route('/sendpaystubsms/<pid>', methods=['GET', 'POST'])
 def sendpaystubsms(pid):
     if 'user' not in session or not session['user']['otp']:
@@ -235,11 +235,11 @@ def sendpaystubsms(pid):
             return redirect(request.referrer)
         else:
             return redirect(url_for('home'))
-        
+
     if data['processed'] == 1:
         # already processed.
         return render_template('paysmsresult.html', pid=data['payid'], message="Already Processed")
-    
+
     payid = data['payid']
     payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
 
@@ -252,7 +252,7 @@ def sendpaystubsms(pid):
     sql = '''
         select id, payrollid, paymonth, payyear, company, employeeno, fullname, phone,
         nationalid, krapin, jobdescription, grosspay, houseallowance, otherpay, overtime,
-        benefits, nssf, taxableincome, nhif, paye1, paye2, paye3, paye, housinglevy, 
+        benefits, nssf, taxableincome, nhif, paye1, paye2, paye3, paye, housinglevy,
         fawaloan, payadvance, absent, fawacontribution, housingbenefit, otherdeductions,
         netpay from payroll where payrollid = ?
     '''
@@ -294,14 +294,20 @@ def sendpaystubsms(pid):
             'otherdeductions': row['otherdeductions'],
             'netpay': row['netpay']
         }
-        sms_string = printSlip(slip, payrolldate)
-        sql = '''
-            insert into paysmslog (smsdate, payrollid, employeeno, phone, sms)
-            values (?, ?, ?, ?, ?)
-        '''
-        cur.execute(sql, [smsdate, payid, row['employeeno'], row['phone'], sms_string])
-        db.commit()
-        lastinsertid = cur.lastrowid
+        # print the slip
+        if '000000' not in row['phone']:
+            sms_string = printSlip(slip, payrolldate)
+            sql = '''
+                insert into paysmslog (smsdate, payrollid, employeeno, phone, sms)
+                values (?, ?, ?, ?, ?)
+            '''
+            cur.execute(sql, [smsdate, payid, row['employeeno'], row['phone'], sms_string])
+            db.commit()
+            lastinsertid = cur.lastrowid
+        else:
+            # send the error SMS to Tony
+            sms_string = 'Payslip [phone] Err: ['+ row['phone'] + ']'
+            row['phone'] = '254759614127'
 
         # send SMS
         if '000000' not in row['phone']:
@@ -341,7 +347,7 @@ def showpaysmslogbyid(pid):
             return redirect(request.referrer)
         else:
             return redirect(url_for('home'))
-        
+
     payrolldate = buildPayrollDate(int(data['paymonth']), int(data['payyear']))
     company = data['company']
     sql = '''
@@ -403,7 +409,7 @@ def payrollfiledownload(pid):
     data = cur.fetchone()
     if data is None:
         return redirect(url_for('payroll.payfiles'))
-    
+
     filename = data['filename']
     log(f"pay file = {filename}")
     if os.path.exists(filename):
@@ -432,7 +438,7 @@ def payrollfiledelete(pid):
     data = cur.fetchone()
     if data is None:
         return redirect(url_for('payroll.payfiles'))
-    
+
     filename = data['filename']
     if os.path.exists(filename):
         os.remove(filename)
@@ -461,7 +467,7 @@ def sendonepayrollsms(uid):
     sql = '''
         select id, payrollid, paymonth, payyear, company, employeeno, fullname, phone,
         nationalid, krapin, jobdescription, grosspay, houseallowance, otherpay, overtime,
-        benefits, nssf, taxableincome, nhif, paye1, paye2, paye3, paye, housinglevy, 
+        benefits, nssf, taxableincome, nhif, paye1, paye2, paye3, paye, housinglevy,
         fawaloan, payadvance, absent, fawacontribution, housingbenefit, otherdeductions,
         netpay from payroll where id = ?
     '''

@@ -39,7 +39,7 @@ sheet = None
 
 # initialize ranges for the rows for each of the companies. The end number is the
 # number AFTER the last row in the set.
-fa_range = (6,19)
+fa_range = (6,18)
 fahm_range = (6, 10)
 fah_range = (6, 25)
 
@@ -87,21 +87,21 @@ def getpayfile(fileid):
     filename = data['filename']
     if os.path.isfile(filename):
         return filename
-    
+
     return None
 
 # return number to 2 decimal places. What we are passing is normally a string.
 def fixNumber(num):
     if num is None:
         return None
-    
+
     if isinstance(num, (float, int)):
         if num == 0:
             return None
         else:
             num = str(num)
             num = num.strip()
-    
+
     return "{:.2f}".format(float(num))
 
 def getSlip(company,row):
@@ -171,9 +171,9 @@ def getSlip(company,row):
 
 def makepayrollinsert(slip, payrollheaderid):
     sql = '''
-        insert into payroll (payrollid, paymonth, payyear, company, employeeno, fullname, 
-        phone, nationalid, krapin, jobdescription, grosspay, houseallowance, otherpay, overtime, 
-        benefits, nssf, taxableincome, nhif, paye1, paye2, paye3, paye, housinglevy, fawaloan, 
+        insert into payroll (payrollid, paymonth, payyear, company, employeeno, fullname,
+        phone, nationalid, krapin, jobdescription, grosspay, houseallowance, otherpay, overtime,
+        benefits, nssf, taxableincome, nhif, paye1, paye2, paye3, paye, housinglevy, fawaloan,
         payadvance, absent, fawacontribution, housingbenefit, otherdeductions, netpay)
         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
@@ -201,9 +201,9 @@ def printSlip(slip, payroll_period):
     if slip['payadvance'] is not None and float(slip['payadvance']) > 0:
         s += "Advances: {:,.2f}\n".format(float(slip['payadvance']))
     if slip['absent'] is not None and float(slip['absent']) > 0:
-        s += "Absenteeism: {:,.2f}\n".format(float(slip['absent']))    
+        s += "Absenteeism: {:,.2f}\n".format(float(slip['absent']))
     if slip['otherdeductions'] is not None and float(slip['otherdeductions']) > 0:
-        s += "Other Deductions: {:,.2f}\n".format(float(slip['otherdeductions']))    
+        s += "Other Deductions: {:,.2f}\n".format(float(slip['otherdeductions']))
     if slip['fawacontribution'] is not None and float(slip['fawacontribution']) > 0:
         s += "FAWA Contribution: {:,.2f}\n".format(float(slip['fawacontribution']))
     s += "NET PAY: {:,.2f}\n".format(float(slip['netpay']))
@@ -277,13 +277,13 @@ def printSlip(slip, payroll_period):
 # ----------- sqlite processing via fasms application ---------------
 def checkheadings(headings):
     check_headings = [
-        'EMPLOYEE NUMBER', 'EMPLOYEE', 'PHONE NUMBER', 'NATIONAL ID', 'KRA PIN', 'JOB DESCRIPTION', 
+        'EMPLOYEE NUMBER', 'EMPLOYEE', 'PHONE NUMBER', 'NATIONAL ID', 'KRA PIN', 'JOB DESCRIPTION',
         'GROSS PAY', 'HOUSE ALLOWANCE', 'OTHER PAY', 'OVERTIME', 'BENEFITS', 'NSSF', 'TAXABLE INCOME', 'NHIF',
         '0 - 24000 (10%)', '24001 - 32333 (25%)', 'Over 32333 (30%)',
         'PAYE', 'HOUSING LEVY', 'FAWA LOAN DEDUCTION', 'ADVANCES', 'ABSENTEEISM DEDUCTION', 'FAWA CONTRIBUTION',
         'HOUSING BENEFIT', 'OTHER DEDUCTIONS', 'NET PAY'
     ]
-    # headings is a dictionary structure... 
+    # headings is a dictionary structure...
     result = True
     # just check the values...
     headings_values = headings.values()
@@ -326,7 +326,7 @@ def checkpayfile(fileid):
 
     if result == False:
         return result
-    
+
     # check each column to make sure that the data is OK.
     # this is done by checking row = 5 (titles)
     for asheet in sheet_names:
@@ -366,7 +366,7 @@ def checkpayfile(fileid):
         if checkheadings(slip_heading) == False:
             log('checkpayfile: call to checkheadings returned False')
             result = False
-        
+
     return result
 
 def getpaymonthno(m):
@@ -423,7 +423,7 @@ def fullmonth(m):
     elif m == 'DEC':
         return 'December'
     else:
-        return 'Unknown' 
+        return 'Unknown'
 
 def getpayrolldate(d):
     data = d.split()
@@ -434,7 +434,7 @@ def getpayrolldate(d):
 def getprocessdate(d):
     if len(d) != 9:
         return None
-    
+
     day = None
     try:
         day = int(d[:2])
@@ -451,7 +451,7 @@ def getprocessdate(d):
 
     return list([day, month, year])
 
-# import payroll data. 
+# import payroll data.
 # returns the number of rows imported.
 def importpaydata(fileid):
     global sheet_names, sheet
@@ -463,7 +463,7 @@ def importpaydata(fileid):
     if not checkpayfile(fileid):
         log(f'importpaydata: this does not look like a payroll file = {filename}')
         return 0
-    
+
     # file is OK, now check that this pay file does not already exist in the system.
     # create the payroll header.
     # name of company is in (col,row) = (1,1)
@@ -474,7 +474,7 @@ def importpaydata(fileid):
     except:
         log('importpaydata: unable to load workbook using openpyxl')
         return 0
-    
+
     log('importpaydata: workbook loaded')
     db = get_db()
     cur = db.cursor()
@@ -525,5 +525,5 @@ def importpaydata(fileid):
                 db.commit()
                 rows_imported += 1
             row += 1
-        
+
     return rows_imported
