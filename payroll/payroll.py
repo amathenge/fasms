@@ -295,7 +295,7 @@ def sendpaystubsms(pid):
             'netpay': row['netpay']
         }
         # print the slip
-        if '000000' not in row['phone']:
+        if '254000' not in slip['phone']:
             sms_string = printSlip(slip, payrolldate)
             sql = '''
                 insert into paysmslog (smsdate, payrollid, employeeno, phone, sms)
@@ -310,8 +310,8 @@ def sendpaystubsms(pid):
             row['phone'] = '254759614127'
 
         # send SMS
-        if '000000' not in row['phone']:
-            smsrecipient = row['phone']
+        if '254000' not in slip['phone']:
+            smsrecipient = slip['phone']
             smsresult = sendSMS(sms_string, [smsrecipient])
             sql = 'update paysmslog set smsresult = ? where id = ?'
             cur.execute(sql, [smsresult, lastinsertid])
