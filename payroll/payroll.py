@@ -510,7 +510,11 @@ def sendonepayrollsms(uid):
         'otherdeductions': data['otherdeductions'],
         'netpay': data['netpay']
     }
-    sms_string = printSlip(slip, payrolldate)
+    try:
+        sms_string = printSlip(slip, payrolldate)
+    except:
+        return redirect(request.referrer)
+
     sql = '''
         insert into paysmslog (smsdate, payrollid, employeeno, phone, sms)
         values (?, ?, ?, ?, ?)

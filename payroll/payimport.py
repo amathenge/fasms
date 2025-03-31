@@ -41,7 +41,7 @@ sheet = None
 # number AFTER the last row in the set.
 fa_range = (6,18)
 fahm_range = (6, 10)
-fah_range = (6, 25)
+fah_range = (6, 24)
 
 def buildPayrollDate(m, y):
     s = ''
