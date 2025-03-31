@@ -101,6 +101,8 @@ def fixNumber(num):
         else:
             num = str(num)
             num = num.strip()
+    elif isinstance(num, str):
+        return None
 
     return "{:.2f}".format(float(num))
 
