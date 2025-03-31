@@ -295,7 +295,7 @@ def sendpaystubsms(pid):
             'netpay': row['netpay']
         }
         # print the slip
-        if '254000' not in slip['phone']:
+        try:
             sms_string = printSlip(slip, payrolldate)
             sql = '''
                 insert into paysmslog (smsdate, payrollid, employeeno, phone, sms)
@@ -304,19 +304,14 @@ def sendpaystubsms(pid):
             cur.execute(sql, [smsdate, payid, row['employeeno'], row['phone'], sms_string])
             db.commit()
             lastinsertid = cur.lastrowid
-        else:
-            # send the error SMS to Tony
-            sms_string = 'Payslip [phone] Err: ['+ row['phone'] + ']'
-            row['phone'] = '254759614127'
-
-        # send SMS
-        if '254000' not in slip['phone']:
             smsrecipient = slip['phone']
             smsresult = sendSMS(sms_string, [smsrecipient])
             sql = 'update paysmslog set smsresult = ? where id = ?'
             cur.execute(sql, [smsresult, lastinsertid])
             db.commit()
             smscount += 1
+        except:
+            pass
 
     return render_template('payroll/paysmsresult.html', pid=pid, message=f'{smscount} messages sent')
 
